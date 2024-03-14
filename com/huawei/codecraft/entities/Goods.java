@@ -1,12 +1,13 @@
 package com.huawei.codecraft.entities;
 
 import com.huawei.codecraft.Config;
+import com.huawei.codecraft.utils.Pair;
 
 public class Goods {
-    int x;
-    int y;
-    int value;
-    int expire_time;
+    public int x;
+    public int y;
+    public int value;
+    public int expire_time;
 
     public Goods(int x, int y, int value, int generate_time) {
         this.x = x;
@@ -23,5 +24,9 @@ public class Goods {
                 ", value=" + value +
                 ", expire_time=" + expire_time +
                 '}';
+    }
+
+    public Pair getPos() {
+        return new Pair(x, y);
     }
 }

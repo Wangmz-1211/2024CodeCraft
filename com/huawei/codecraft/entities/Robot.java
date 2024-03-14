@@ -2,9 +2,8 @@ package com.huawei.codecraft.entities;
 
 import com.huawei.codecraft.Config;
 import com.huawei.codecraft.utils.Pair;
+import com.huawei.codecraft.algo.Path;
 
-import java.util.Deque;
-import java.util.List;
 
 public class Robot {
     int xLimit = Config.S_MAP;
@@ -19,7 +18,7 @@ public class Robot {
     public int value = 0;
 
     public Dock[] docks = null;
-    public Deque<Pair> path = null;
+    public Path path = null;
 
     public Robot(int id) {
         this.id = id;
@@ -50,23 +49,19 @@ public class Robot {
             move(3);
             this.x = next.x;
             this.y = next.y;
-        }
-        else if (dx == -1 && dy == 0) {
+        } else if (dx == -1 && dy == 0) {
             move(2);
             this.x = next.x;
             this.y = next.y;
-        }
-        else if (dx == 0 && dy == 1) {
+        } else if (dx == 0 && dy == 1) {
             move(0);
             this.x = next.x;
             this.y = next.y;
-        }
-        else if (dx == 0 && dy == -1) {
+        } else if (dx == 0 && dy == -1) {
             move(1);
             this.x = next.x;
             this.y = next.y;
-        }
-        else {
+        } else {
             path = null;
             targetDock = -1;
         }
@@ -100,6 +95,10 @@ public class Robot {
         System.out.println("get " + id);
     }
 
+    public Pair getPos() {
+        return new Pair(x, y);
+    }
+
     public void pull() {
         if (this.goods == 0) return;
         boolean inDock = false;
@@ -114,7 +113,7 @@ public class Robot {
         if (inDock) {
             this.goods = 0;
             this.value = 0;
-            System.out.println("put " + id);
+            System.out.println("pull " + id);
         }
     }
 

@@ -4,16 +4,16 @@
 
 package com.huawei.codecraft;
 
+import com.huawei.codecraft.algo.AStarAlgorithm;
+import com.huawei.codecraft.algo.Algorithm;
+import com.huawei.codecraft.algo.Path;
 import com.huawei.codecraft.entities.*;
 import com.huawei.codecraft.utils.Logger;
 import com.huawei.codecraft.utils.Pair;
-import com.huawei.codecraft.algo.SimpleAlgorithm;
-import sun.rmi.runtime.Log;
+import com.huawei.codecraft.algo.BreadthFirstSearchAlgorithm;
+import com.huawei.codecraft.utils.Utils;
 
-import java.util.Arrays;
-import java.util.Deque;
-import java.util.Random;
-import java.util.Scanner;
+import java.util.*;
 
 /**
  * Main
@@ -56,10 +56,21 @@ public class Main {
 
         /*Other Logics*/
         // Initialize map information
+        List<Pair> botPos = new ArrayList<>();
         for (int i = 0; i < Config.S_MAP; i++) {
             for (int j = 0; j < Config.S_MAP; j++) {
-                map[i][j] = ch[i].charAt(j);
+                char c = ch[i].charAt(j);
+                if (c == 'A') {
+                    botPos.add(new Pair(i, j));
+                }
+                map[i][j] = c;
             }
+        }
+        for (Pair p : botPos) {
+            Utils.mapHandler(map, p);
+        }
+        for (char[] cs : map) {
+            Logger.debug("[MAP]", new String(cs));
         }
         // Initialize Robots
         for (int i = 0; i < Config.N_ROBOT; i++) {
@@ -104,6 +115,7 @@ public class Main {
             int x = scanf.nextInt();
             int y = scanf.nextInt();
             int val = scanf.nextInt();
+            if (map[x][y] != 'A') continue;
             goodsBucket.add(new Goods(x, y, val, id));
         }
         Logger.info("[INPUT]", "Goods updated");
@@ -128,29 +140,12 @@ public class Main {
 
     public static void main(String[] args) {
 
-//        char[][] map = new char[Config.S_MAP][Config.S_MAP];
-//        for (int i = 0; i < Config.S_MAP; i++) {
-//            for (int j = 0; j < Config.S_MAP; j++) {
-//                map[i][j] = '.';
-//            }
-//        }
-//
-//
-//        Deque<Pair> bfs = SimpleAlgorithm.bfs(map, 0, 0, 5, 5);
-//        System.out.println(bfs.size());
-//
-//        GoodsBucket gb = new GoodsBucket();
-//        gb.add(new Goods(10, 10, 100, 1));
-//        Robot robot = new Robot(0);
-//        robot.x = 1;
-//        robot.y = 1;
-//
-//        Deque<Pair> gp = SimpleAlgorithm.findGoods(map, robot, gb.goodsArr);
-//        System.out.println(gp.size());
+        new AStarAlgorithm().test();
 
         try {
             Logger.info("[INIT]", "Start");
             Main mainInstance = new Main();
+            Algorithm algo = new AStarAlgorithm();
             mainInstance.init();
             for (int frame = 1; frame <= 15000; frame++) {
                 Logger.info("[FRAME]", "==============================IN==============================");
@@ -159,7 +154,7 @@ public class Main {
                 Logger.info("[FRAME]", "==============================OP==============================");
                 mainInstance.goodsBucket.clean(frameId);
 
-                // Robot Logig
+                // Robot Logic
                 for (int i = 0; i < Config.N_ROBOT; i++) {
                     Robot bot = mainInstance.robots[i];
                     if (bot.status == 0) { // bot is stuck
@@ -176,7 +171,7 @@ public class Main {
                                 continue;
                             }
                             if (bot.path == null && frameId % 10 == bot.id) { // find path
-                                Deque<Pair> path = SimpleAlgorithm.findGoods(mainInstance.map, bot, mainInstance.goodsBucket.goodsArr);
+                                Path path = algo.findGoods(mainInstance.map, bot, mainInstance.goodsBucket);
                                 if (path == null) {
                                     Logger.debug("[ROBOT]", "Robot " + bot.id + " found no path.");
                                     continue;
@@ -195,7 +190,7 @@ public class Main {
                             }
                             if (bot.targetDock == -1 || bot.path == null) {
                                 // find a dock
-                                Deque<Pair> path = SimpleAlgorithm.findDock(mainInstance.map, mainInstance.docks, bot);
+                                Path path = algo.findDock(mainInstance.map, mainInstance.docks, bot);
                                 if (path == null) {
                                     Logger.debug("[ROBOT]", "Robot " + bot.id + " found no dock.");
                                     continue;
@@ -211,6 +206,29 @@ public class Main {
                         }
                     }
                 }
+
+                // Ship Logic
+                for (int i = 0; i < Config.N_SHIP; i++) {
+                    Ship ship = mainInstance.ships[i];
+                    if (ship.status == 0) { // Ship is moving
+                        Logger.debug("[SHIP]", "Ship " + ship.id + " is moving.");
+                    } else if (ship.status == 1) {
+                        if (ship.pos == -1) { // Ship has sold goods, go dock
+                            ship.ship(mainInstance.docksBetter[i].id);
+                            Logger.info("[SHIP]", "Ship " + ship.id + " is going to dock " + mainInstance.docksBetter[i].id);
+                            continue;
+                        }
+                        ship.load_time += 1;
+                        if (ship.load_time >= Config.H_MAX_SHIP_LOAD_TIME) {
+                            ship.go();
+                            Logger.info("[SHIP]", "Ship " + ship.id + " is going to " + ship.pos);
+                        }
+                    } else {
+                        ship.ship(mainInstance.docksWorse[i].id);
+                        Logger.info("[SHIP]", "Ship " + ship.id + " is going to dock " + mainInstance.docksWorse[i].id);
+                    }
+                }
+
 
                 long frameTime = System.currentTimeMillis() - startTime;
                 Logger.info("[F TIME]", "Frame " + frameId + " finished in " + frameTime + "ms");

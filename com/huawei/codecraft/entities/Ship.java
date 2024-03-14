@@ -13,6 +13,10 @@ public class Ship {
         this.id = id;
     }
 
+
+    public void ship(int dockId){
+        System.out.println("ship " + this.id + " " + dockId);
+    }
     public void go() {
         this.load_time = 0;
         System.out.println("go " + this.id);
