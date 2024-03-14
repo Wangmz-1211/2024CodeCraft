@@ -35,6 +35,11 @@ public class GoodsBucket {
         goodsArr[x][y] = goods;
     }
 
+    public void remove(Goods  goods) {
+        this.goodsArr[goods.x][goods.y] = null;
+        this.goodsSet.remove(goods);
+    }
+
     public void clean(int frameId) {
         Set<Goods> bucket = this.buckets[clean_iterator];
         clean_iterator = (clean_iterator + 1) % H_N_GOODS_BUCKET;
@@ -54,6 +59,10 @@ public class GoodsBucket {
             goodsSet.remove(goods);
             goodsArr[goods.x][goods.y] = null;
         }
+    }
+
+    public Goods get(int x, int y) {
+        return goodsArr[x][y];
     }
 
 

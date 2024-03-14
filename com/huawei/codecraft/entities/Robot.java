@@ -1,6 +1,7 @@
 package com.huawei.codecraft.entities;
 
 import com.huawei.codecraft.Config;
+import com.huawei.codecraft.utils.Pair;
 
 import java.util.Deque;
 import java.util.List;
@@ -18,7 +19,7 @@ public class Robot {
     public int value = 0;
 
     public Dock[] docks = null;
-    public Deque<int[]> path = null;
+    public Deque<Pair> path = null;
 
     public Robot(int id) {
         this.id = id;
@@ -42,13 +43,29 @@ public class Robot {
             path = null;
             return;
         }
-        int[] next = path.pollFirst();
-        int dx = next[0] - x;
-        int dy = next[1] - y;
-        if (dx == 1 && dy == 0) move(3);
-        else if (dx == -1 && dy == 0) move(2);
-        else if (dx == 0 && dy == 1) move(0);
-        else if (dx == 0 && dy == -1) move(1);
+        Pair next = path.pollFirst();
+        int dx = next.x - x;
+        int dy = next.y - y;
+        if (dx == 1 && dy == 0) {
+            move(3);
+            this.x = next.x;
+            this.y = next.y;
+        }
+        else if (dx == -1 && dy == 0) {
+            move(2);
+            this.x = next.x;
+            this.y = next.y;
+        }
+        else if (dx == 0 && dy == 1) {
+            move(0);
+            this.x = next.x;
+            this.y = next.y;
+        }
+        else if (dx == 0 && dy == -1) {
+            move(1);
+            this.x = next.x;
+            this.y = next.y;
+        }
         else {
             path = null;
             targetDock = -1;

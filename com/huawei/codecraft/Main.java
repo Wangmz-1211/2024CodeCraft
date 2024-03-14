@@ -6,9 +6,12 @@ package com.huawei.codecraft;
 
 import com.huawei.codecraft.entities.*;
 import com.huawei.codecraft.utils.Logger;
+import com.huawei.codecraft.utils.Pair;
+import com.huawei.codecraft.algo.SimpleAlgorithm;
 import sun.rmi.runtime.Log;
 
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.Random;
 import java.util.Scanner;
 
@@ -21,6 +24,7 @@ public class Main {
 
     private int money, boat_capacity, id;
     private final String[] ch = new String[Config.S_MAP];
+    private final char[][] map = new char[Config.S_MAP][Config.S_MAP];
 
     private final Robot[] robots = new Robot[Config.N_ROBOT];
     private final Dock[] docks = new Dock[Config.N_DOCK];
@@ -38,7 +42,7 @@ public class Main {
         for (int i = 0; i < Config.N_DOCK; i++) {
             Dock dock = new Dock();
             id = scanf.nextInt();
-            docks[id] = new Dock();
+            docks[id] = dock;
             dock.id = id;
             dock.x = scanf.nextInt();
             dock.y = scanf.nextInt();
@@ -51,6 +55,12 @@ public class Main {
         Logger.info("[INIT]", "Boat capacity " + boat_capacity);
 
         /*Other Logics*/
+        // Initialize map information
+        for (int i = 0; i < Config.S_MAP; i++) {
+            for (int j = 0; j < Config.S_MAP; j++) {
+                map[i][j] = ch[i].charAt(j);
+            }
+        }
         // Initialize Robots
         for (int i = 0; i < Config.N_ROBOT; i++) {
             Robot robot = new Robot(i);
@@ -116,16 +126,98 @@ public class Main {
         return id;
     }
 
-    public static void main(String[] args)  {
+    public static void main(String[] args) {
+
+//        char[][] map = new char[Config.S_MAP][Config.S_MAP];
+//        for (int i = 0; i < Config.S_MAP; i++) {
+//            for (int j = 0; j < Config.S_MAP; j++) {
+//                map[i][j] = '.';
+//            }
+//        }
+//
+//
+//        Deque<Pair> bfs = SimpleAlgorithm.bfs(map, 0, 0, 5, 5);
+//        System.out.println(bfs.size());
+//
+//        GoodsBucket gb = new GoodsBucket();
+//        gb.add(new Goods(10, 10, 100, 1));
+//        Robot robot = new Robot(0);
+//        robot.x = 1;
+//        robot.y = 1;
+//
+//        Deque<Pair> gp = SimpleAlgorithm.findGoods(map, robot, gb.goodsArr);
+//        System.out.println(gp.size());
+
         try {
             Logger.info("[INIT]", "Start");
             Main mainInstance = new Main();
             mainInstance.init();
             for (int frame = 1; frame <= 15000; frame++) {
+                Logger.info("[FRAME]", "==============================IN==============================");
+                long startTime = System.currentTimeMillis();
                 int frameId = mainInstance.input();
-                Random rand = new Random();
-                for (int i = 0; i < Config.N_ROBOT; i++)
-                    System.out.printf("move %d %d" + System.lineSeparator(), i, rand.nextInt(4) % 4);
+                Logger.info("[FRAME]", "==============================OP==============================");
+                mainInstance.goodsBucket.clean(frameId);
+
+                // Robot Logig
+                for (int i = 0; i < Config.N_ROBOT; i++) {
+                    Robot bot = mainInstance.robots[i];
+                    if (bot.status == 0) { // bot is stuck
+                        bot.path = null;
+                        bot.targetDock = -1;
+                    } else { // bot is running normally
+                        if (bot.goods == 0) { // bot  is  empty
+                            bot.targetDock = -1;
+                            Goods goods = mainInstance.goodsBucket.get(bot.x, bot.y);
+                            if (goods != null) { // bot is standing on a goods, take it.
+                                bot.get(goods);
+                                mainInstance.goodsBucket.remove(goods);
+                                Logger.debug("[ROBOT]", "Robot " + bot.id + " got goods.");
+                                continue;
+                            }
+                            if (bot.path == null && frameId % 10 == bot.id) { // find path
+                                Deque<Pair> path = SimpleAlgorithm.findGoods(mainInstance.map, bot, mainInstance.goodsBucket.goodsArr);
+                                if (path == null) {
+                                    Logger.debug("[ROBOT]", "Robot " + bot.id + " found no path.");
+                                    continue;
+                                }
+                                bot.path = path;
+                            }
+                            if (bot.path != null) {
+                                bot.movePath();
+                                Logger.debug("[ROBOT]", "Robot " + bot.id + " moved.");
+                            }
+
+                        } else { // bot has goods
+                            if (mainInstance.map[bot.x][bot.y] == 'B') {
+                                bot.pull();
+                                continue;
+                            }
+                            if (bot.targetDock == -1 || bot.path == null) {
+                                // find a dock
+                                Deque<Pair> path = SimpleAlgorithm.findDock(mainInstance.map, mainInstance.docks, bot);
+                                if (path == null) {
+                                    Logger.debug("[ROBOT]", "Robot " + bot.id + " found no dock.");
+                                    continue;
+                                }
+                                bot.targetDock = 1;
+                                bot.path = path;
+                            }
+                            if (bot.targetDock > -1) {
+                                bot.movePath();
+                            }
+
+
+                        }
+                    }
+                }
+
+                long frameTime = System.currentTimeMillis() - startTime;
+                Logger.info("[F TIME]", "Frame " + frameId + " finished in " + frameTime + "ms");
+                if (frameTime > 15) {
+                    Logger.error("[F TIME]", "Frame " + frameId + " finished in " + frameTime + "ms");
+                }
+
                 System.out.println("OK");
                 System.out.flush();
             }
