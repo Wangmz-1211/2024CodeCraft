@@ -85,6 +85,9 @@ public class Main {
         Arrays.sort(docksSort,
                 (Dock a, Dock b) -> Double.compare(b.score, a.score
                 ));
+        for (Dock dock : docksSort) {
+            Logger.debug("[DOCK]", "Dock " + dock.id + " score " + dock.score + " transport time " + dock.transport_time + " loading speed " + dock.loading_speed);
+        }
         docksBetter = Arrays.copyOfRange(docksSort, 0, 5);
         docksWorse = Arrays.copyOfRange(docksSort, 5, 10);
         Logger.info("[INIT]", "Docks evaluated.");
@@ -236,7 +239,6 @@ public class Main {
                             Dock bestDock = ship.chooseDock();
                             bestDock.assigned = true;
                             ship.ship(bestDock.id);
-//                            ship.ship(mainInstance.docksBetter[i].id);
                             Logger.info("[SHIP]", "Ship " + ship.id + " is going to dock " + bestDock.id);
                             continue;
                         }
@@ -244,7 +246,9 @@ public class Main {
                         Dock dock = mainInstance.docks[ship.pos];
                         dock.load(ship);
                         if (
-                                ship.num >= mainInstance.boat_capacity
+                                ship.load_time >= Config.H_MIN_SHIP_LOAD_TIME
+                                        &&
+                                        ship.num >= mainInstance.boat_capacity
                                         ||
                                         dock.goods <= dock.loading_speed
                                         ||

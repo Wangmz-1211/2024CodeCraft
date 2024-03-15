@@ -8,7 +8,7 @@ import java.io.IOException;
 public class Logger {
 
     public static void error(String title, String message) {
-//        if (Config.DEBUG_LEVEL < 0) return;
+        if (Config.DEBUG_LEVEL < 0) return;
         String content = title + " " + message;
         write("error.log", content);
     }
