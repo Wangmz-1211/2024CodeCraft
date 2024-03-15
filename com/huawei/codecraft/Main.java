@@ -21,10 +21,9 @@ public class Main {
 
     private final Robot[] robots = new Robot[Config.N_ROBOT];
     private final Dock[] docks = new Dock[Config.N_DOCK];
-    private Dock[] docksBetter = new Dock[5];
-    private Dock[] docksWorse = new Dock[5];
     private final Ship[] ships = new Ship[Config.N_SHIP];
     private final GoodsBucket goodsBucket = new GoodsBucket();
+
 
     private void init() throws Exception {
         Scanner scanf = new Scanner(System.in);
@@ -68,10 +67,12 @@ public class Main {
         // Initialize Robots
         for (int i = 0; i < Config.N_ROBOT; i++) {
             Robot robot = new Robot(i);
-            robot.docks = docks;
+            robot.docks = new ArrayList<>(Arrays.asList(docks));
             robots[i] = robot;
+
         }
         Logger.info("[INIT]", "Robots initialized.");
+
 
         // Initialize Ships
         for (int i = 0; i < Config.N_SHIP; i++) {
@@ -79,18 +80,6 @@ public class Main {
             ships[i].docks = docks;
         }
         Logger.info("[INIT]", "Ships initialized.");
-
-        // evaluate docks
-        Dock[] docksSort = docks.clone();
-        Arrays.sort(docksSort,
-                (Dock a, Dock b) -> Double.compare(b.score, a.score
-                ));
-        for (Dock dock : docksSort) {
-            Logger.debug("[DOCK]", "Dock " + dock.id + " score " + dock.score + " transport time " + dock.transport_time + " loading speed " + dock.loading_speed);
-        }
-        docksBetter = Arrays.copyOfRange(docksSort, 0, 5);
-        docksWorse = Arrays.copyOfRange(docksSort, 5, 10);
-        Logger.info("[INIT]", "Docks evaluated.");
 
         // Finish
         String okk = scanf.nextLine();
@@ -138,7 +127,6 @@ public class Main {
     public static void main(String[] args) {
 
         try {
-            Logger.info("[INIT]", "Start");
             Main mainInstance = new Main();
             Algorithm algo = new AStarAlgorithm();
             mainInstance.init();
@@ -165,16 +153,23 @@ public class Main {
                             }
                             if (frameId % 10 == bot.id && bot.targetDock == -1 || bot.path == null) {
                                 // find a dock
-                                char[] mapOri = new char[Config.N_ROBOT];
+                                // label the position of the robots as obstacles, so the path
+                                // won't go through the position of the robots.
                                 for (int botId = 0; botId < Config.N_ROBOT; botId++) {
-                                    Pair robot = mainInstance.robots[botId].getPos();
-                                    mapOri[botId] = mainInstance.map[robot.x][robot.y];
-                                    mainInstance.map[robot.x][robot.y] = '#';
+                                    Pair pos = mainInstance.robots[botId].getPos();
+                                    mainInstance.map[pos.x][pos.y] = '#';
                                 }
                                 Path path = algo.findDock(mainInstance.map, mainInstance.docks, bot);
                                 for (int botId = 0; botId < Config.N_ROBOT; botId++) {
-                                    Pair robot = mainInstance.robots[botId].getPos();
-                                    mainInstance.map[robot.x][robot.y] = mapOri[botId];
+                                    Pair pos = mainInstance.robots[botId].getPos();
+                                    char c = 'A';
+                                    for (Dock dock : mainInstance.docks) {
+                                        if (dock.inDock(pos)) {
+                                            c = 'B';
+                                            break;
+                                        }
+                                    }
+                                    mainInstance.map[pos.x][pos.y] = c;
                                 }
                                 if (path == null) {
                                     Logger.debug("[ROBOT]", "Robot " + bot.id + " found no dock.");
@@ -197,17 +192,23 @@ public class Main {
                                 continue;
                             }
                             if (bot.path == null && frameId % 10 == bot.id) { // find path
-                                char[] mapOri = new char[Config.N_ROBOT];
                                 for (int botId = 0; botId < Config.N_ROBOT; botId++) {
-                                    Pair robot = mainInstance.robots[botId].getPos();
-                                    mapOri[botId] = mainInstance.map[robot.x][robot.y];
-                                    mainInstance.map[robot.x][robot.y] = '#';
+                                    Pair pos = mainInstance.robots[botId].getPos();
+                                    mainInstance.map[pos.x][pos.y] = '#';
                                 }
+
                                 // Try to assign a goods to this robot
                                 Path path = algo.findGoods(mainInstance.map, bot, mainInstance.goodsBucket);
                                 for (int botId = 0; botId < Config.N_ROBOT; botId++) {
-                                    Pair robot = mainInstance.robots[botId].getPos();
-                                    mainInstance.map[robot.x][robot.y] = mapOri[botId];
+                                    Pair pos = mainInstance.robots[botId].getPos();
+                                    char c = 'A';
+                                    for (Dock dock : mainInstance.docks) {
+                                        if (dock.inDock(pos)) {
+                                            c = 'B';
+                                            break;
+                                        }
+                                    }
+                                    mainInstance.map[pos.x][pos.y] = c;
                                 }
                                 if (path == null) {
                                     Logger.debug("[ROBOT]", "Robot " + bot.id + " found no path.");
@@ -216,7 +217,6 @@ public class Main {
                                 Pair targetPos = path.peekTargetPos();
                                 // Once assigned to a specific bot, the goods will be removed from the goodsBucket,
                                 // so other bots will not be assigned to the same goods.
-
                                 mainInstance.goodsBucket.assignAt(targetPos);
                                 bot.path = path;
                             }
@@ -246,13 +246,15 @@ public class Main {
                         Dock dock = mainInstance.docks[ship.pos];
                         dock.load(ship);
                         if (
-                                ship.load_time >= Config.H_MIN_SHIP_LOAD_TIME
+//                                ship.load_time >= Config.H_MIN_SHIP_LOAD_TIME
+                                ship.load_time >= mainInstance.boat_capacity
                                         &&
                                         ship.num >= mainInstance.boat_capacity
                                         ||
                                         dock.goods <= dock.loading_speed
                                         ||
-                                        ship.load_time >= Config.H_MAX_SHIP_LOAD_TIME
+//                                        ship.load_time >= Config.H_MAX_SHIP_LOAD_TIME
+                                        ship.load_time >= mainInstance.boat_capacity * 2
                         ) {
                             dock.assigned = false;
                             ship.go();
@@ -265,8 +267,6 @@ public class Main {
                         ship.ship(bestDock.id);
                         Logger.error("[SHIP]", "Ship " + ship.id + " is going to dock " + bestDock.id);
 
-//                        ship.ship(mainInstance.docksWorse[i].id);
-//                        Logger.info("[SHIP]", "Ship " + ship.id + " is going to dock " + mainInstance.docksWorse[i].id);
                     }
                 }
 

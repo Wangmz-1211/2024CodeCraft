@@ -1,6 +1,8 @@
 package com.huawei.codecraft;
 
 
+import java.util.List;
+
 public class Robot {
     int xLimit = Config.S_MAP;
     int yLimit = Config.S_MAP;
@@ -13,7 +15,7 @@ public class Robot {
     public int targetDock = -1;
     public int value = 0;
 
-    public Dock[] docks = null;
+    public List<Dock> docks = null;
     public Path path = null;
 
     public Robot(int id) {
@@ -98,17 +100,15 @@ public class Robot {
     public void pull() {
         if (this.goods == 0) return;
         Pair pos = getPos();
-        boolean inDock = false;
+        this.goods = 0;
+        this.value = 0;
         for (Dock dock : docks) {
             if (dock.inDock(pos)) {
-                inDock = true;
-                this.goods = 0;
-                this.value = 0;
                 dock.goods++;
-                System.out.println("pull " + id);
-                return;
+                break;
             }
         }
+        System.out.println("pull " + id);
     }
 
 }

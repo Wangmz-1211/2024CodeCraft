@@ -46,22 +46,26 @@ public class AStarAlgorithm implements Algorithm {
     }
 
     public Path aStar(char[][] map, Pair start, Pair end) {
+        long startMs = System.currentTimeMillis();
         Logger.debug("[AStar]", "Finding path from " + start + " to " + end);
+
 
         int[] dx = {1, -1, 0, 0};
         int[] dy = {0, 0, -1, 1};
         openSet.clear();
         closedSet.clear();
         openSet.offer(new Node(start, 0, null));
-        int depth = 0;
         while (!openSet.isEmpty()) {
-            if (depth++ >= Config.H_FIND_GOODS_MAX_DISTANCE) {
+            //TODO limit by time
+            if (System.currentTimeMillis() - startMs > Config.H_ASTAR_MAX_TIME) {
+                Logger.debug("[AStar]", "Time used: " + (System.currentTimeMillis() - startMs) + "ms");
                 Logger.debug("[AStar]", "Exceed max depth, no path found.");
                 return null;
             }
             Node current = openSet.poll();
             if (current.pair.equals(end)) {
                 Path p = buildPath(current);
+                Logger.debug("[AStar]", "Time used: " + (System.currentTimeMillis() - startMs) + "ms");
                 Logger.debug("[AStar]", "Path found, length: " + p.path.size());
                 p.poll();
                 return p;
@@ -81,6 +85,7 @@ public class AStarAlgorithm implements Algorithm {
                 }
             }
         }
+        Logger.debug("[AStar]", "Time used: " + (System.currentTimeMillis() - startMs) + "ms");
         Logger.debug("[AStar]", "No path found");
         return null;
     }
@@ -94,7 +99,7 @@ public class AStarAlgorithm implements Algorithm {
      */
     private int getGoodsCost(Goods goods, Robot bot) {
         int d = Math.abs(goods.x - bot.x) + Math.abs(goods.y - bot.y);
-        return d * d * d / goods.value;
+        return d - goods.value;
     }
 
     /**
@@ -107,40 +112,11 @@ public class AStarAlgorithm implements Algorithm {
     private int getDockCost(Dock dock, Robot bot) {
         Pair p1 = dock.getPos();
         Pair p2 = bot.getPos();
-        return normOne(p1.x, p1.y, p2.x, p2.y) / dock.score;
+        return normOne(p1.x, p1.y, p2.x, p2.y) - dock.score;
     }
 
     private int normOne(int startX, int startY, int endX, int endY) {
         return Math.abs(startX - endX) + Math.abs(startY - endY);
-    }
-
-    private int sqrt(int x) {
-        if (x == 0) {
-            return 0;
-        }
-
-        double x0 = x;
-        while (true) {
-            double xi = 0.5 * (x0 + x / x0);
-            if (Math.abs(x0 - xi) < 1) {
-                break;
-            }
-            x0 = xi;
-        }
-        return (int) x0;
-
-    }
-
-    private int normTwo(int startX, int startY, int endX, int endY) {
-        int dx = startX - endX;
-        int dy = startY - endY;
-        return sqrt(dx * dx + dy * dy);
-    }
-
-    private double diag(int startX, int startY, int endX, int endY) {
-        int dy = Math.abs(startY - endY);
-        int dx = Math.abs(startX - endX);
-        return Math.min(dx, dy) * Math.sqrt(2) + Math.abs(dx - dy);
     }
 
     private int baseCost(Pair start, Pair curr) {
@@ -166,20 +142,8 @@ public class AStarAlgorithm implements Algorithm {
         return isValidPosition(map, pair.x, pair.y);
     }
 
-    private boolean isValidPosition(char[][] map, Node node) {
-        return isValidPosition(map, node.pair);
-    }
-
     private boolean isObstacle(char[][] map, int x, int y) {
         return map[x][y] != '#' && map[x][y] != '*' && map[x][y] != 'W' && map[x][y] != '.';
-    }
-
-    private boolean isObstacle(char[][] map, Pair pair) {
-        return isObstacle(map, pair.x, pair.y);
-    }
-
-    private boolean isObstacle(char[][] map, Node node) {
-        return isObstacle(map, node.pair);
     }
 
     private boolean inOpenSet(Node node) {
@@ -187,13 +151,6 @@ public class AStarAlgorithm implements Algorithm {
             throw new IllegalStateException("openSet is null");
         }
         return openSet.contains(node);
-    }
-
-    private boolean inOpenSet(Pair pair) {
-        if (openSet == null) {
-            throw new IllegalStateException("openSet is null");
-        }
-        return openSet.contains(new Node(pair, 0, null));
     }
 
     private boolean inClosedSet(Node node) {
@@ -243,12 +200,21 @@ public class AStarAlgorithm implements Algorithm {
                 this.cost = cost;
             }
         }
+        Logger.debug("[AStar]", "Finding dock for robot " + bot.id + " from " + bot.docks.size() + " docks");
         PriorityQueue<Node> rank = new PriorityQueue<>(Comparator.comparingInt(o -> o.cost));
-        for (Dock dock : docks) {
+        for (Dock dock : bot.docks) {
             int cost = getDockCost(dock, bot);
             rank.offer(new Node(dock, cost));
         }
-        return findDockById(map, docks, bot);
+        Dock target = rank.isEmpty() ? null : rank.poll().dock;
+        if (target == null) return null;
+        Logger.debug("[FIND DOCK]", "Finding dock for robot at " + bot.getPos() + " to " + target.getPos() + ", " + " robot on " + map[bot.x][bot.y] + " dock on " + map[target.x][target.y]);
+        Path path = aStar(map, bot.getPos(), target.getPos());
+        if (path == null) {
+            bot.docks.remove(target);
+            return null;
+        }
+        return path;
     }
 
     private Path findDockById(char[][] map, Dock[] docks, Robot bot) {
@@ -263,14 +229,6 @@ public class AStarAlgorithm implements Algorithm {
             current = current.parent;
         }
         return path;
-    }
-
-
-    private boolean inClosedSet(Pair pair) {
-        if (closedSet == null) {
-            throw new IllegalStateException("closedSet is null");
-        }
-        return closedSet.contains(new Node(pair, 0, null));
     }
 
 }
