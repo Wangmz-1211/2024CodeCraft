@@ -1,8 +1,4 @@
-package com.huawei.codecraft.entities;
-
-import com.huawei.codecraft.Config;
-import com.huawei.codecraft.utils.Pair;
-import com.huawei.codecraft.algo.Path;
+package com.huawei.codecraft;
 
 
 public class Robot {
@@ -101,19 +97,17 @@ public class Robot {
 
     public void pull() {
         if (this.goods == 0) return;
+        Pair pos = getPos();
         boolean inDock = false;
         for (Dock dock : docks) {
-            if (
-                    dock.x <= this.x && dock.x + 3 >= this.x &&
-                            dock.y <= this.y && dock.y + 3 >= this.y) {
+            if (dock.inDock(pos)) {
                 inDock = true;
-                break;
+                this.goods = 0;
+                this.value = 0;
+                dock.goods++;
+                System.out.println("pull " + id);
+                return;
             }
-        }
-        if (inDock) {
-            this.goods = 0;
-            this.value = 0;
-            System.out.println("pull " + id);
         }
     }
 

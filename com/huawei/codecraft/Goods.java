@@ -1,13 +1,15 @@
-package com.huawei.codecraft.entities;
+package com.huawei.codecraft;
 
 import com.huawei.codecraft.Config;
-import com.huawei.codecraft.utils.Pair;
+import com.huawei.codecraft.Pair;
 
 public class Goods {
     public int x;
     public int y;
     public int value;
     public int expire_time;
+
+    public boolean assigned = false;
 
     public Goods(int x, int y, int value, int generate_time) {
         this.x = x;

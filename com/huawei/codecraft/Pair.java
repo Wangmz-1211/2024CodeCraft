@@ -1,6 +1,4 @@
-package com.huawei.codecraft.utils;
-
-import java.util.Objects;
+package com.huawei.codecraft;
 
 public class Pair {
     public Integer x;

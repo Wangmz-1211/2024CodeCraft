@@ -1,6 +1,4 @@
-package com.huawei.codecraft.algo;
-
-import com.huawei.codecraft.utils.Pair;
+package com.huawei.codecraft;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -48,5 +46,9 @@ public class Path {
 
     public Pair poll() {
         return path.poll();
+    }
+
+    public Pair peekTargetPos() {
+        return path.peekLast();
     }
 }

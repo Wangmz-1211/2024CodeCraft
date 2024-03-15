@@ -16,10 +16,10 @@ public interface Config {
     int H_FIND_GOODS_K2 = 1;
 
     // used in BFS algorithm
-    int H_FIND_GOODS_MAX_DISTANCE = 100;
+    int H_FIND_GOODS_MAX_DISTANCE = 6000;
     int H_N_GOODS_BUCKET = 20;
 
     // used in A* algorithm
-    double H_D_BASE_COST = 0.0;
-    double H_D_HEURISTIC_COST = 1.0;
+    int H_D_BASE_COST = 10;
+    int H_D_HEURISTIC_COST = 20;
 }

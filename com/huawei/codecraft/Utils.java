@@ -1,8 +1,5 @@
-package com.huawei.codecraft.utils;
+package com.huawei.codecraft;
 
-import com.huawei.codecraft.Config;
-
-import java.awt.font.LineMetrics;
 import java.util.ArrayDeque;
 import java.util.Deque;
 

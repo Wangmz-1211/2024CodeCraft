@@ -4,14 +4,7 @@
 
 package com.huawei.codecraft;
 
-import com.huawei.codecraft.algo.AStarAlgorithm;
-import com.huawei.codecraft.algo.Algorithm;
-import com.huawei.codecraft.algo.Path;
-import com.huawei.codecraft.entities.*;
-import com.huawei.codecraft.utils.Logger;
-import com.huawei.codecraft.utils.Pair;
-import com.huawei.codecraft.algo.BreadthFirstSearchAlgorithm;
-import com.huawei.codecraft.utils.Utils;
+import sun.rmi.runtime.Log;
 
 import java.util.*;
 
@@ -48,7 +41,7 @@ public class Main {
             dock.y = scanf.nextInt();
             dock.transport_time = scanf.nextInt();
             dock.loading_speed = scanf.nextInt();
-            dock.score = (double) dock.loading_speed / dock.transport_time;
+            dock.updateScore();
         }
         Logger.info("[INIT]", "Docks loaded");
         this.boat_capacity = scanf.nextInt();
@@ -83,6 +76,7 @@ public class Main {
         // Initialize Ships
         for (int i = 0; i < Config.N_SHIP; i++) {
             ships[i] = new Ship(i);
+            ships[i].docks = docks;
         }
         Logger.info("[INIT]", "Ships initialized.");
 
@@ -140,8 +134,6 @@ public class Main {
 
     public static void main(String[] args) {
 
-        new AStarAlgorithm().test();
-
         try {
             Logger.info("[INIT]", "Start");
             Main mainInstance = new Main();
@@ -161,36 +153,26 @@ public class Main {
                         bot.path = null;
                         bot.targetDock = -1;
                     } else { // bot is running normally
-                        if (bot.goods == 0) { // bot  is  empty
-                            bot.targetDock = -1;
-                            Goods goods = mainInstance.goodsBucket.get(bot.x, bot.y);
-                            if (goods != null) { // bot is standing on a goods, take it.
-                                bot.get(goods);
-                                mainInstance.goodsBucket.remove(goods);
-                                Logger.debug("[ROBOT]", "Robot " + bot.id + " got goods.");
-                                continue;
-                            }
-                            if (bot.path == null && frameId % 10 == bot.id) { // find path
-                                Path path = algo.findGoods(mainInstance.map, bot, mainInstance.goodsBucket);
-                                if (path == null) {
-                                    Logger.debug("[ROBOT]", "Robot " + bot.id + " found no path.");
-                                    continue;
-                                }
-                                bot.path = path;
-                            }
-                            if (bot.path != null) {
-                                bot.movePath();
-                                Logger.debug("[ROBOT]", "Robot " + bot.id + " moved.");
-                            }
-
-                        } else { // bot has goods
+                        if (bot.goods == 1) { // bot has goods
                             if (mainInstance.map[bot.x][bot.y] == 'B') {
                                 bot.pull();
+                                bot.path = null;
+                                bot.targetDock = -1;
                                 continue;
                             }
-                            if (bot.targetDock == -1 || bot.path == null) {
+                            if (frameId % 10 == bot.id && bot.targetDock == -1 || bot.path == null) {
                                 // find a dock
+                                char[] mapOri = new char[Config.N_ROBOT];
+                                for (int botId = 0; botId < Config.N_ROBOT; botId++) {
+                                    Pair robot = mainInstance.robots[botId].getPos();
+                                    mapOri[botId] = mainInstance.map[robot.x][robot.y];
+                                    mainInstance.map[robot.x][robot.y] = '#';
+                                }
                                 Path path = algo.findDock(mainInstance.map, mainInstance.docks, bot);
+                                for (int botId = 0; botId < Config.N_ROBOT; botId++) {
+                                    Pair robot = mainInstance.robots[botId].getPos();
+                                    mainInstance.map[robot.x][robot.y] = mapOri[botId];
+                                }
                                 if (path == null) {
                                     Logger.debug("[ROBOT]", "Robot " + bot.id + " found no dock.");
                                     continue;
@@ -201,8 +183,44 @@ public class Main {
                             if (bot.targetDock > -1) {
                                 bot.movePath();
                             }
+                        }
+                        if (bot.goods == 0) { // bot  is  empty
+                            bot.targetDock = -1;
+                            Goods goods = mainInstance.goodsBucket.get(bot.x, bot.y);
+                            if (goods != null) { // bot is standing on a goods, take it.
+                                bot.get(goods);
+                                mainInstance.goodsBucket.remove(goods);
+                                Logger.debug("[ROBOT]", "Robot " + bot.id + " got goods.");
+                                continue;
+                            }
+                            if (bot.path == null && frameId % 10 == bot.id) { // find path
+                                char[] mapOri = new char[Config.N_ROBOT];
+                                for (int botId = 0; botId < Config.N_ROBOT; botId++) {
+                                    Pair robot = mainInstance.robots[botId].getPos();
+                                    mapOri[botId] = mainInstance.map[robot.x][robot.y];
+                                    mainInstance.map[robot.x][robot.y] = '#';
+                                }
+                                // Try to assign a goods to this robot
+                                Path path = algo.findGoods(mainInstance.map, bot, mainInstance.goodsBucket);
+                                for (int botId = 0; botId < Config.N_ROBOT; botId++) {
+                                    Pair robot = mainInstance.robots[botId].getPos();
+                                    mainInstance.map[robot.x][robot.y] = mapOri[botId];
+                                }
+                                if (path == null) {
+                                    Logger.debug("[ROBOT]", "Robot " + bot.id + " found no path.");
+                                    continue;
+                                }
+                                Pair targetPos = path.peekTargetPos();
+                                // Once assigned to a specific bot, the goods will be removed from the goodsBucket,
+                                // so other bots will not be assigned to the same goods.
 
-
+                                mainInstance.goodsBucket.assignAt(targetPos);
+                                bot.path = path;
+                            }
+                            if (bot.path != null) {
+                                bot.movePath();
+                                Logger.debug("[ROBOT]", "Robot " + bot.id + " moved.");
+                            }
                         }
                     }
                 }
@@ -214,22 +232,41 @@ public class Main {
                         Logger.debug("[SHIP]", "Ship " + ship.id + " is moving.");
                     } else if (ship.status == 1) {
                         if (ship.pos == -1) { // Ship has sold goods, go dock
-                            ship.ship(mainInstance.docksBetter[i].id);
-                            Logger.info("[SHIP]", "Ship " + ship.id + " is going to dock " + mainInstance.docksBetter[i].id);
+
+                            Dock bestDock = ship.chooseDock();
+                            bestDock.assigned = true;
+                            ship.ship(bestDock.id);
+//                            ship.ship(mainInstance.docksBetter[i].id);
+                            Logger.info("[SHIP]", "Ship " + ship.id + " is going to dock " + bestDock.id);
                             continue;
                         }
-                        ship.load_time += 1;
-                        if (ship.load_time >= Config.H_MAX_SHIP_LOAD_TIME) {
+                        // Ship is in a dock[ship.pos], loading goods
+                        Dock dock = mainInstance.docks[ship.pos];
+                        dock.load(ship);
+                        if (
+                                ship.num >= mainInstance.boat_capacity
+                                        ||
+                                        dock.goods <= dock.loading_speed
+                                        ||
+                                        ship.load_time >= Config.H_MAX_SHIP_LOAD_TIME
+                        ) {
+                            dock.assigned = false;
                             ship.go();
-                            Logger.info("[SHIP]", "Ship " + ship.id + " is going to " + ship.pos);
+                            Logger.info("[SHIP]", "Ship " + ship.id + " is going to sell goods.");
                         }
-                    } else {
-                        ship.ship(mainInstance.docksWorse[i].id);
-                        Logger.info("[SHIP]", "Ship " + ship.id + " is going to dock " + mainInstance.docksWorse[i].id);
+                    } else { // Ship is waiting outside a dock
+                        Logger.error("[SHIP]", "Ship " + ship.id + " is waiting outside dock " + ship.pos);
+                        Dock bestDock = ship.chooseDock();
+                        bestDock.assigned = true;
+                        ship.ship(bestDock.id);
+                        Logger.error("[SHIP]", "Ship " + ship.id + " is going to dock " + bestDock.id);
+
+//                        ship.ship(mainInstance.docksWorse[i].id);
+//                        Logger.info("[SHIP]", "Ship " + ship.id + " is going to dock " + mainInstance.docksWorse[i].id);
                     }
                 }
 
-
+                // Finish
                 long frameTime = System.currentTimeMillis() - startTime;
                 Logger.info("[F TIME]", "Frame " + frameId + " finished in " + frameTime + "ms");
                 if (frameTime > 15) {

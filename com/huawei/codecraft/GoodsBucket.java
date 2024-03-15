@@ -1,6 +1,4 @@
-package com.huawei.codecraft.entities;
-
-import com.huawei.codecraft.Config;
+package com.huawei.codecraft;
 
 import java.util.*;
 
@@ -38,6 +36,13 @@ public class GoodsBucket {
     public void remove(Goods  goods) {
         this.goodsArr[goods.x][goods.y] = null;
         this.goodsSet.remove(goods);
+    }
+
+    public void assignAt(Pair pos) {
+        Goods goods = this.goodsArr[pos.x][pos.y];
+        if (goods != null) {
+            goods.assigned = true;
+        }
     }
 
     public void clean(int frameId) {
