@@ -24,4 +24,6 @@ public interface Config {
     int H_D_BASE_COST = 10;
     int H_D_HEURISTIC_COST = 20;
     int H_ASTAR_MAX_TIME = 12; // ms
+
+    int H_DOCK_PUNISH = 100;
 }

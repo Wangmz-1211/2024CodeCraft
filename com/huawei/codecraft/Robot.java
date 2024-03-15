@@ -1,9 +1,22 @@
 package com.huawei.codecraft;
 
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.PriorityQueue;
 
 public class Robot {
+
+    static class Node<T> {
+        T obj;
+        int cost;
+
+        public Node(T obj, int cost) {
+            this.obj = obj;
+            this.cost = cost;
+        }
+    }
+
     int xLimit = Config.S_MAP;
     int yLimit = Config.S_MAP;
 
@@ -15,12 +28,56 @@ public class Robot {
     public int targetDock = -1;
     public int value = 0;
 
-    public List<Dock> docks = null;
+    public Dock[] docks = null;
+    public int[] dockPunish = new int[Config.N_DOCK];
     public Path path = null;
 
     public Robot(int id) {
         this.id = id;
     }
+
+    private int normOne(int x, int y) {
+        return Math.abs(x - this.x) + Math.abs(y - this.y);
+    }
+
+    public void punishDock(Dock dock) {
+        for( int dockId = 0; dockId < Config.N_DOCK; dockId++) {
+            if (docks[dockId] == dock) {
+                dockPunish[dockId] += Config.H_DOCK_PUNISH;
+            }
+        }
+    }
+    private int getGoodsCost(Goods goods) {
+        return normOne(goods.x, goods.y) - goods.value;
+    }
+
+    private int getDockCost(Dock dock) {
+        return normOne(dock.x, dock.y) - dock.score;
+    }
+
+    public int getDockCost(int dockId) {
+        return getDockCost(docks[dockId]) + dockPunish[dockId];
+    }
+
+    public Goods chooseGoods(GoodsBucket goodsBucket) {
+        PriorityQueue<Node<Goods>> rank = new PriorityQueue<>(Comparator.comparingInt(o -> o.cost));
+        for (Goods goods : goodsBucket.goodsSet) {
+            if (goods.assigned) continue;
+            int cost = getGoodsCost(goods);
+            rank.offer(new Node<>(goods, cost));
+        }
+        return rank.isEmpty() ? null : rank.poll().obj;
+    }
+
+    public Dock chooseDock() {
+        PriorityQueue<Node<Dock>> rank = new PriorityQueue<>(Comparator.comparingInt(o -> o.cost));
+        for (int dockId = 0; dockId < Config.N_DOCK; dockId++) {
+            int cost = getDockCost(dockId);
+            rank.offer(new Node<>(docks[dockId], cost));
+        }
+        return rank.isEmpty() ? null : rank.poll().obj;
+    }
+
 
     public void update(int x, int y, int goods, int status) {
         if (this.x == x && this.y == y && this.goods == goods && this.status == status) return;

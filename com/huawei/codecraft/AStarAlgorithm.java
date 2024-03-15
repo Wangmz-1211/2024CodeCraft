@@ -90,31 +90,6 @@ public class AStarAlgorithm implements Algorithm {
         return null;
     }
 
-    /**
-     * This cost function controls the priority of the goods for a robot.
-     *
-     * @param goods the goods to be evaluated
-     * @param bot   the robot
-     * @return cost value, smaller better
-     */
-    private int getGoodsCost(Goods goods, Robot bot) {
-        int d = Math.abs(goods.x - bot.x) + Math.abs(goods.y - bot.y);
-        return d - goods.value;
-    }
-
-    /**
-     * This cost function controls the priority of the dock for a robot.
-     *
-     * @param dock the dock to be evaluated
-     * @param bot  the robot
-     * @return cost value, smaller better
-     */
-    private int getDockCost(Dock dock, Robot bot) {
-        Pair p1 = dock.getPos();
-        Pair p2 = bot.getPos();
-        return normOne(p1.x, p1.y, p2.x, p2.y) - dock.score;
-    }
-
     private int normOne(int startX, int startY, int endX, int endY) {
         return Math.abs(startX - endX) + Math.abs(startY - endY);
     }
@@ -162,22 +137,7 @@ public class AStarAlgorithm implements Algorithm {
 
     @Override
     public Path findGoods(char[][] map, Robot bot, GoodsBucket goodsBucket) {
-        class Node {
-            final Goods goods;
-            final int cost;
-
-            public Node(Goods goods, int cost) {
-                this.goods = goods;
-                this.cost = cost;
-            }
-        }
-        PriorityQueue<Node> rank = new PriorityQueue<>(Comparator.comparingInt(o -> o.cost));
-        for (Goods goods : goodsBucket.goodsSet) {
-            if (goods.assigned) continue;
-            int cost = getGoodsCost(goods, bot);
-            rank.offer(new Node(goods, cost));
-        }
-        Goods target = rank.isEmpty() ? null : rank.poll().goods;
+        Goods target = bot.chooseGoods(goodsBucket);
         if (target == null) return null;
         Path path = aStar(map, bot.getPos(), target.getPos());
         if (path == null) {
@@ -188,37 +148,24 @@ public class AStarAlgorithm implements Algorithm {
         return path;
     }
 
+    /**
+     * Find the best dock by several factors
+     *
+     * @param map   the map
+     * @param docks not used, for interface compatibility
+     * @param bot   the robot
+     * @return the path to the best dock, not including the current position.
+     */
 
     @Override
     public Path findDock(char[][] map, Dock[] docks, Robot bot) {
-        class Node {
-            final Dock dock;
-            final int cost;
-
-            public Node(Dock dock, int cost) {
-                this.dock = dock;
-                this.cost = cost;
-            }
-        }
-        Logger.debug("[AStar]", "Finding dock for robot " + bot.id + " from " + bot.docks.size() + " docks");
-        PriorityQueue<Node> rank = new PriorityQueue<>(Comparator.comparingInt(o -> o.cost));
-        for (Dock dock : bot.docks) {
-            int cost = getDockCost(dock, bot);
-            rank.offer(new Node(dock, cost));
-        }
-        Dock target = rank.isEmpty() ? null : rank.poll().dock;
+        Dock target = bot.chooseDock();
         if (target == null) return null;
         Logger.debug("[FIND DOCK]", "Finding dock for robot at " + bot.getPos() + " to " + target.getPos() + ", " + " robot on " + map[bot.x][bot.y] + " dock on " + map[target.x][target.y]);
         Path path = aStar(map, bot.getPos(), target.getPos());
-        if (path == null) {
-            bot.docks.remove(target);
-            return null;
-        }
+        if (path == null)
+            bot.punishDock(target);
         return path;
-    }
-
-    private Path findDockById(char[][] map, Dock[] docks, Robot bot) {
-        return aStar(map, new Pair(bot.x, bot.y), new Pair(docks[bot.id].x, docks[bot.id].y));
     }
 
     private Path buildPath(Node end) {

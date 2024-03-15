@@ -67,9 +67,8 @@ public class Main {
         // Initialize Robots
         for (int i = 0; i < Config.N_ROBOT; i++) {
             Robot robot = new Robot(i);
-            robot.docks = new ArrayList<>(Arrays.asList(docks));
+            robot.docks = docks;
             robots[i] = robot;
-
         }
         Logger.info("[INIT]", "Robots initialized.");
 
