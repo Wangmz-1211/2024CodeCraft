@@ -22,15 +22,15 @@ public class Config {
      * They are used to control the logic of the program.
      */
     //Ship logic
-    double H_MIN_SHIP_LOAD_TIME = 1;
-    double H_MAX_SHIP_LOAD_TIME = 2;
+    double H_MIN_SHIP_LOAD_TIME = 3;
+    double H_MAX_SHIP_LOAD_TIME = 3;
 
     // A* algorithm
-    int H_ASTAR_MAX_TIME = 6; // ms
+    int H_ASTAR_MAX_TIME = 5; // ms
 
     // Robot logic
-    int H_DOCK_PUNISH = 6;
-    boolean H_BOT_FIND_GOOD_ITERATOR = true;
+    int H_DOCK_PUNISH = 1;
+    boolean H_BOT_FIND_GOOD_ITERATOR = false;
     boolean H_BOT_FIND_DOCK_ITERATOR = false;
 
     public Config() {

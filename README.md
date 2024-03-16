@@ -1,3 +1,124 @@
+
+
+[TOC]
+
+
+
+# Run
+
+```shell
+# Run with default configuration
+java -jar XXX.jar
+
+# Run with configuration
+# There must 6 args.
+java -jar XXX.jar \
+H_MIN_SHIP_LOAD_TIME \
+H_MAX_SHIP_LOAD_TIME \
+H_ASTAR_MAX_TIME \
+H_DOCK_PUNISH \
+H_BOT_FIND_GOOD_ITERATOR \
+H_BOT_FIND_DOCK_ITERATOR
+```
+## Grid Searching hyper-parameters
+
+This is a shell script to run the judge program with different hyper-parameters.
+
+The result will be saved in `result.log` and the error will be saved in `err.log`.
+
+The result can be easily analysis by python.
+
+```shell
+EXEC=./PreliminaryJudge # The judge program
+MAP_PATH=./map.txt # The map file
+JAR_PATH=./XXX.jar # The jar file
+
+RESULT_PATH=./result.log
+ERROR_PATH=./err.log
+
+for H_MIN_SHIP_LOAD_TIME in {1..3};
+do
+  for H_MAX_SHIP_LOAD_TIME in {2..4};
+  do
+    for H_ASTAR_MAX_TIME in {5..30};
+    do
+      for H_DOCK_PUNISH in {1,10,100,1000};
+      do
+        for H_BOT_FIND_GOOD_ITERATOR in {true,false};
+        do
+          for H_BOT_FIND_DOCK_ITERATOR in {true,false};
+          do
+            echo "$H_MIN_SHIP_LOAD_TIME $H_MAX_SHIP_LOAD_TIME $H_ASTAR_MAX_TIME $H_DOCK_PUNISH $H_BOT_FIND_GOOD_ITERATOR $H_BOT_FIND_DOCK_ITERATOR" >> $RESULT_PATH;
+            $EXEC -l NONE -m $MAP_PATH "java -jar $JAR_PATH $H_MIN_SHIP_LOAD_TIME $H_MAX_SHIP_LOAD_TIME $H_ASTAR_MAX_TIME $H_DOCK_PUNISH $H_BOT_FIND_GOOD_ITERATOR $H_BOT_FIND_DOCK_ITERATOR" >> $RESULT_PATH 2>$ERROR_PATH;
+          done
+        done
+      done
+    done
+  done
+done
+
+```
+
+## Args
+
+-   `H_MIN_SHIP_LOAD_TIME` - The minimum frame a ship stay in a dock is $\text{H\_MIN\_SHIP\_LOAD\_TIME} * \text{boat\_capacity}$, `boat_capacity` is given at initialization.
+-   `H_MAX_SHIP_LOAD_TIME` - The maximum frame a ship stay in a dock, $\text{H\_MAX\_SHIP\_LOAD\_TIME} * \text{boat\_capacity}$
+-   `H_ASTAR_MAX_TIME` - The maximum the algorithm will run, in ms.
+-   `H_DOCK_PUNISH` - The punish value for a dock when a robot can’t find a path to it.
+-   `H_BOT_FIND_GOOD_ITERATOR` -  When `true`, there is only one robot trying to find a path to a goods. When `false`, all the robot will. 
+-   `H_BOT_FIND_DOCK_ITERATOR` - When `true`, there is only one robot trying to find a path to a dock. When `false`, all the robot will.
+
+# Main Loop
+
+## :robot: Robot Logic
+
+```mermaid
+graph TD
+	start((start)) --> status{status}
+	status --1--> goods{have goods?}
+	goods --y--> dock{in dock?}
+	goods --n----> path{have path?}
+	path --y--> move[move] ----> e
+	path --n--> cgoods[choose target good] --> fgoods[find path]
+	fgoods --> rfgoods{found path?} 
+	rfgoods --y--> agoods[assign goods] --> move
+	rfgoods --n--> rmgoods[remove goods]
+  rmgoods--> e
+	dock --y--> pull[pull the good] ----> e
+	dock --n--> pdock{have path?} 
+	pdock --n--> fdock
+	pdock --y--> move
+	fdock[find dock] --> rfdock{found path?}
+	rfdock --n--> pudock
+	rfdock --y--> move
+	pudock[punish dock] -----> e
+	status --0--> recovering ------> e((end))
+```
+
+## :ship: Ship Logic
+
+```mermaid
+graph TD
+	start((start))
+	start --> status{status}
+	status --0--> moving ---> e((end))
+	status --1--> position{position}
+  position -->|-1| sold_goods[sold goods]
+	position -->|dockId| exceed_min_load_time{exceed MIN\nload time?}
+	exceed_min_load_time --n--> load --> e
+	exceed_min_load_time --y--> exceed_max_load_time{exceed MAX\nload time?}
+	exceed_capacity_or_no_goods_in_dock --y--> sell_goods
+	exceed_max_load_time --y--> sell_goods[go sell goods] -->e
+	exceed_max_load_time --n--> exceed_capacity_or_no_goods_in_dock{exceed capacity\nor\nget out of goods?}
+	exceed_capacity_or_no_goods_in_dock --n--> load
+	sold_goods --> choose_dock[choose a dock] --> ship
+  ship --> e
+  status --2--> waiting
+	waiting--> choose_dock[choose]
+```
+
+
+
 # Cost Functions
 
 在进行多种行为的目标选择时，均遵循以下流程：
@@ -6,7 +127,9 @@
 2.   结束遍历后从优先队列中选择cost最低的一个目标
 3.   涉及路径时对目标进行A*
 
-## Robot choose Dock
+## Robot choosing Dock
+
+### V1
 
 $$
 f(robot, dock) = \frac{distance(robot, dock)} {dock.score}
@@ -16,7 +139,17 @@ $$
     -   越高的score表示dock能更快的装货并以更短的距离卖出货物
 -   distance为一范数/曼哈顿距离，越短越好
 
-##  Robot choose Goods
+### V2
+
+$$
+f(robot, dock) = distance(robot, dock) - dock.score
+$$
+
+-   Simpler, but better in most of cases.
+
+##  Robot choosing Goods
+
+### V1
 
 $$
 f(robot, goods) = \frac{distance(robot, goods)^3}{goods.value}
@@ -24,7 +157,15 @@ $$
 
 -   `0 < goods.value <= 200`是货物的价值
 
-## Ship choose Dock
+### V2
+
+$$
+f(robot, goods) = distance(robot, goods) - goods.value
+$$
+
+-   Simpler, but better in most of cases.
+
+## Ship choosing Dock
 
 $$
 f(ship, dock) = \frac{10000}{dock.score \times (\abs{dock.goods}+1)}
@@ -33,35 +174,4 @@ $$
 -   `dock.goods`为dock中剩余货物量，由于多种因素只能获得近似值，防止除零错误进行处理
 
 
-
-
-
-# Hyper Params
-
-| H_MIN_SHIP_LOAD_TIME | H_MAX_SHIP_LOAD_TIME | H_FIND_GOODS_MAX_DISTANCE | score |
-| -------------------- | -------------------- | ------------------------- | ----- |
-| 10                   | 100                  | 4000                      | 9w+   |
-| 10                   | 100                  | 8000                      | 9w+   |
-| 10                   | 100                  | 10000                     | 8-10w |
-| 10                   | 100                  | 15000                     | 9w+   |
-| 30                   | 100                  | 15000                     | 11w+  |
-| 50                   | 100                  | 15000                     | 11w+  |
-| 70                   | 100                  | 15000                     | 12w+  |
-| 100                  | 100                  | 15000                     | 12w+  |
-
-
-
-# Score on maps
-
-| Map          | Score  | Timeout |
-| ------------ | ------ | ------- |
-| map1.txt     | 128310 | no      |
-| map2.txt     | 119332 | yes     |
-| map-3.7.txt  | 163023 | no      |
-| map-3.8.txt  | 171658 | no      |
-| map-3.9.txt  | x      | yes     |
-| map-3.10.txt | 110266 | no      |
-| map-3.11.txt | 166395 | no      |
-| map-3.12.txt | x      | yes     |
-| map-3.13.txt | x      | yes     |
 
