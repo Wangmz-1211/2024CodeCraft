@@ -17,8 +17,10 @@ public class Robot {
         }
     }
 
-    int xLimit = Config.S_MAP;
-    int yLimit = Config.S_MAP;
+    int xLimit = 0;
+    int yLimit = 0;
+
+    private Config config = null;
 
     public int id = -1;
     public int x = -1;
@@ -29,11 +31,16 @@ public class Robot {
     public int value = 0;
 
     public Dock[] docks = null;
-    public int[] dockPunish = new int[Config.N_DOCK];
+    public int[] dockPunish = null;
     public Path path = null;
 
-    public Robot(int id) {
+    public Robot(int id, Config config) {
         this.id = id;
+        this.config = config;
+        xLimit = config.S_MAP;
+        yLimit = config.S_MAP;
+        dockPunish = new int[config.N_DOCK];
+
     }
 
     private int normOne(int x, int y) {
@@ -41,12 +48,13 @@ public class Robot {
     }
 
     public void punishDock(Dock dock) {
-        for( int dockId = 0; dockId < Config.N_DOCK; dockId++) {
+        for (int dockId = 0; dockId < config.N_DOCK; dockId++) {
             if (docks[dockId] == dock) {
-                dockPunish[dockId] += Config.H_DOCK_PUNISH;
+                dockPunish[dockId] += config.H_DOCK_PUNISH;
             }
         }
     }
+
     private int getGoodsCost(Goods goods) {
         return normOne(goods.x, goods.y) - goods.value;
     }
@@ -71,7 +79,7 @@ public class Robot {
 
     public Dock chooseDock() {
         PriorityQueue<Node<Dock>> rank = new PriorityQueue<>(Comparator.comparingInt(o -> o.cost));
-        for (int dockId = 0; dockId < Config.N_DOCK; dockId++) {
+        for (int dockId = 0; dockId < config.N_DOCK; dockId++) {
             int cost = getDockCost(dockId);
             rank.offer(new Node<>(docks[dockId], cost));
         }

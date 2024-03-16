@@ -15,23 +15,25 @@ import java.util.*;
  */
 public class Main {
 
+    public Config config = new Config();
+    public Utils utils = new Utils(config);
     private int money, boat_capacity, id;
-    private final String[] ch = new String[Config.S_MAP];
-    private final char[][] map = new char[Config.S_MAP][Config.S_MAP];
+    private final String[] ch = new String[config.S_MAP];
+    private final char[][] map = new char[config.S_MAP][config.S_MAP];
 
-    private final Robot[] robots = new Robot[Config.N_ROBOT];
-    private final Dock[] docks = new Dock[Config.N_DOCK];
-    private final Ship[] ships = new Ship[Config.N_SHIP];
+    private final Robot[] robots = new Robot[config.N_ROBOT];
+    private final Dock[] docks = new Dock[config.N_DOCK];
+    private final Ship[] ships = new Ship[config.N_SHIP];
     private final GoodsBucket goodsBucket = new GoodsBucket();
 
 
     private void init() throws Exception {
         Scanner scanf = new Scanner(System.in);
-        for (int i = 0; i < Config.S_MAP; i++) {
+        for (int i = 0; i < config.S_MAP; i++) {
             ch[i] = scanf.nextLine();
         }
         Logger.info("[INIT]", "Map loaded");
-        for (int i = 0; i < Config.N_DOCK; i++) {
+        for (int i = 0; i < config.N_DOCK; i++) {
             Dock dock = new Dock();
             id = scanf.nextInt();
             docks[id] = dock;
@@ -49,8 +51,8 @@ public class Main {
         /*Other Logics*/
         // Initialize map information
         List<Pair> botPos = new ArrayList<>();
-        for (int i = 0; i < Config.S_MAP; i++) {
-            for (int j = 0; j < Config.S_MAP; j++) {
+        for (int i = 0; i < config.S_MAP; i++) {
+            for (int j = 0; j < config.S_MAP; j++) {
                 char c = ch[i].charAt(j);
                 if (c == 'A') {
                     botPos.add(new Pair(i, j));
@@ -59,14 +61,14 @@ public class Main {
             }
         }
         for (Pair p : botPos) {
-            Utils.mapHandler(map, p);
+            utils.mapHandler(map, p);
         }
         for (char[] cs : map) {
             Logger.debug("[MAP]", new String(cs));
         }
         // Initialize Robots
-        for (int i = 0; i < Config.N_ROBOT; i++) {
-            Robot robot = new Robot(i);
+        for (int i = 0; i < config.N_ROBOT; i++) {
+            Robot robot = new Robot(i, config);
             robot.docks = docks;
             robots[i] = robot;
         }
@@ -74,7 +76,7 @@ public class Main {
 
 
         // Initialize Ships
-        for (int i = 0; i < Config.N_SHIP; i++) {
+        for (int i = 0; i < config.N_SHIP; i++) {
             ships[i] = new Ship(i);
             ships[i].docks = docks;
         }
@@ -105,7 +107,7 @@ public class Main {
         }
         Logger.info("[INPUT]", "Goods updated");
         // Update robots
-        for (int i = 0; i < Config.N_ROBOT; i++) {
+        for (int i = 0; i < config.N_ROBOT; i++) {
             int goods = scanf.nextInt();
             int x = scanf.nextInt();
             int y = scanf.nextInt();
@@ -124,14 +126,14 @@ public class Main {
     }
 
     public void labelMap() {
-        for (int botId = 0; botId < Config.N_ROBOT; botId++) {
+        for (int botId = 0; botId < config.N_ROBOT; botId++) {
             Pair pos = robots[botId].getPos();
             map[pos.x][pos.y] = '#';
         }
     }
 
     public void restoreMap() {
-        for (int botId = 0; botId < Config.N_ROBOT; botId++) {
+        for (int botId = 0; botId < config.N_ROBOT; botId++) {
             Pair pos = robots[botId].getPos();
             char c = 'A';
             for (Dock dock : docks) {
@@ -149,7 +151,13 @@ public class Main {
 
         try {
             Main mainInstance = new Main();
-            Algorithm algo = new AStarAlgorithm();
+
+            Config config = mainInstance.config;
+
+            // Configuration by args
+
+
+            Algorithm algo = new AStarAlgorithm(config);
             mainInstance.init();
             for (int frame = 1; frame <= 15000; frame++) {
                 Logger.info("[FRAME]", "==============================IN==============================");
@@ -159,7 +167,7 @@ public class Main {
                 mainInstance.goodsBucket.clean(frameId);
 
                 // Robot Logic
-                for (int i = 0; i < Config.N_ROBOT; i++) {
+                for (int i = 0; i < config.N_ROBOT; i++) {
                     Robot bot = mainInstance.robots[i];
                     if (bot.status == 0) { // bot is stuck
                         bot.path = null;
@@ -174,7 +182,7 @@ public class Main {
                                 continue;
                             }
                             if (bot.targetDock == -1 || bot.path == null) {
-                                if (!Config.H_BOT_FIND_DOCK_ITERATOR || frameId % 10 == bot.id) {
+                                if (!config.H_BOT_FIND_DOCK_ITERATOR || frameId % 10 == bot.id) {
                                     // find a dock
                                     // label the position of the robots as obstacles, so the path
                                     // won't go through the position of the robots.
@@ -203,7 +211,7 @@ public class Main {
                                 continue;
                             }
                             if (bot.path == null) { // find path
-                                if (!Config.H_BOT_FIND_GOOD_ITERATOR || frameId % 10 == bot.id) {
+                                if (!config.H_BOT_FIND_GOOD_ITERATOR || frameId % 10 == bot.id) {
                                     mainInstance.labelMap();
                                     // Try to assign a goods to this robot
                                     Path path = algo.findGoods(mainInstance.map, bot, mainInstance.goodsBucket);
@@ -227,7 +235,7 @@ public class Main {
                 }
 
                 // Ship Logic
-                for (int i = 0; i < Config.N_SHIP; i++) {
+                for (int i = 0; i < config.N_SHIP; i++) {
                     Ship ship = mainInstance.ships[i];
                     if (ship.status == 0) { // Ship is moving
                         Logger.debug("[SHIP]", "Ship " + ship.id + " is moving.");
@@ -244,13 +252,13 @@ public class Main {
                         Dock dock = mainInstance.docks[ship.pos];
                         dock.load(ship);
                         if (
-                                ship.load_time >= mainInstance.boat_capacity * Config.H_MIN_SHIP_LOAD_TIME
+                                ship.load_time >= mainInstance.boat_capacity * config.H_MIN_SHIP_LOAD_TIME
                                         &&
                                         ship.num >= mainInstance.boat_capacity
                                         ||
                                         dock.goods <= dock.loading_speed
                                         ||
-                                        ship.load_time >= mainInstance.boat_capacity * Config.H_MAX_SHIP_LOAD_TIME
+                                        ship.load_time >= mainInstance.boat_capacity * config.H_MAX_SHIP_LOAD_TIME
                         ) {
                             dock.assigned = false;
                             ship.go();

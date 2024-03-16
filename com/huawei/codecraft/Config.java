@@ -2,7 +2,7 @@ package com.huawei.codecraft;
 
 import java.lang.annotation.Native;
 
-public interface Config {
+public class Config {
     int S_MAP = 200;
     int N_ROBOT = 10;
     int N_DOCK = 10;
@@ -21,10 +21,6 @@ public interface Config {
     double H_MIN_SHIP_LOAD_TIME = 1;
     double H_MAX_SHIP_LOAD_TIME = 2;
 
-    // used in BFS algorithm
-    @Deprecated
-    int H_FIND_GOODS_MAX_DISTANCE = 3000;
-
     // used in A* algorithm
     int H_D_BASE_COST = 1;
     int H_D_HEURISTIC_COST = 2;
@@ -35,5 +31,6 @@ public interface Config {
     boolean H_BOT_FIND_GOOD_ITERATOR = true;
     boolean H_BOT_FIND_DOCK_ITERATOR = false;
 
-
+    public Config() {
+    }
 }

@@ -4,6 +4,8 @@ import com.huawei.codecraft.Config;
 import com.huawei.codecraft.Pair;
 
 public class Goods {
+
+    public static final Config config = new Config();
     public int x;
     public int y;
     public int value;
@@ -15,7 +17,7 @@ public class Goods {
         this.x = x;
         this.y = y;
         this.value = value;
-        this.expire_time = generate_time + Config.T_GOODS;
+        this.expire_time = generate_time + config.T_GOODS;
     }
 
     @Override

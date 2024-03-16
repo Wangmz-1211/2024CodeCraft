@@ -7,20 +7,22 @@ import java.io.IOException;
 
 public class Logger {
 
+    private static final Config config = new Config();
+
     public static void error(String title, String message) {
-        if (Config.DEBUG_LEVEL < 0) return;
+        if (config.DEBUG_LEVEL < 0) return;
         String content = title + " " + message;
         write("error.log", content);
     }
 
     public static void info(String title, String message) {
-        if (Config.DEBUG_LEVEL < 1) return;
+        if (config.DEBUG_LEVEL < 1) return;
         String content = title + " " + message;
         write("info.log", content);
     }
 
     public static void debug(String title, String message) {
-        if (Config.DEBUG_LEVEL < 2) return;
+        if (config.DEBUG_LEVEL < 2) return;
         String content = title + " " + message;
         write("info.log", content);
     }

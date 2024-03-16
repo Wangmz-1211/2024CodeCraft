@@ -37,12 +37,13 @@ public class AStarAlgorithm implements Algorithm {
 
     }
 
-    private PriorityQueue<Node> openSet = null;
-    private PriorityQueue<Node> closedSet = null;
+    private final PriorityQueue<Node> openSet = new PriorityQueue<>(Comparator.comparingInt(o -> o.cost));
+    private final PriorityQueue<Node> closedSet = new PriorityQueue<>(Comparator.comparingInt(o -> o.cost));
 
-    public AStarAlgorithm() {
-        openSet = new PriorityQueue<>(Comparator.comparingInt(o -> o.cost));
-        closedSet = new PriorityQueue<>(Comparator.comparingInt(o -> o.cost));
+    private Config config = null;
+
+    public AStarAlgorithm(Config config) {
+        this.config = config;
     }
 
     public Path aStar(char[][] map, Pair start, Pair end) {
@@ -56,13 +57,13 @@ public class AStarAlgorithm implements Algorithm {
         closedSet.clear();
         openSet.offer(new Node(start, 0, null));
         while (!openSet.isEmpty()) {
-            //TODO limit by time
-            if (System.currentTimeMillis() - startMs > Config.H_ASTAR_MAX_TIME) {
+            if (System.currentTimeMillis() - startMs > config.H_ASTAR_MAX_TIME) {
                 Logger.debug("[AStar]", "Time used: " + (System.currentTimeMillis() - startMs) + "ms");
                 Logger.debug("[AStar]", "Exceed max depth, no path found.");
                 return null;
             }
             Node current = openSet.poll();
+            assert current != null;
             if (current.pair.equals(end)) {
                 Path p = buildPath(current);
                 Logger.debug("[AStar]", "Time used: " + (System.currentTimeMillis() - startMs) + "ms");
@@ -103,7 +104,7 @@ public class AStarAlgorithm implements Algorithm {
     }
 
     private int totalCost(Pair start, Pair curr, Pair end) {
-        return Config.H_D_BASE_COST * baseCost(start, curr) + Config.H_D_HEURISTIC_COST * heuristicCost(curr, end);
+        return config.H_D_BASE_COST * baseCost(start, curr) + config.H_D_HEURISTIC_COST * heuristicCost(curr, end);
     }
 
     private boolean isValidPosition(char[][] map, int x, int y) {
@@ -122,16 +123,10 @@ public class AStarAlgorithm implements Algorithm {
     }
 
     private boolean inOpenSet(Node node) {
-        if (openSet == null) {
-            throw new IllegalStateException("openSet is null");
-        }
         return openSet.contains(node);
     }
 
     private boolean inClosedSet(Node node) {
-        if (closedSet == null) {
-            throw new IllegalStateException("closedSet is null");
-        }
         return closedSet.contains(node);
     }
 
