@@ -123,6 +123,28 @@ public class Main {
         return id;
     }
 
+    public void labelMap() {
+        for (int botId = 0; botId < Config.N_ROBOT; botId++) {
+            Pair pos = robots[botId].getPos();
+            map[pos.x][pos.y] = '#';
+        }
+    }
+
+    public void restoreMap() {
+        for (int botId = 0; botId < Config.N_ROBOT; botId++) {
+            Pair pos = robots[botId].getPos();
+            char c = 'A';
+            for (Dock dock : docks) {
+                if (dock.inDock(pos)) {
+                    c = 'B';
+                    break;
+                }
+            }
+            map[pos.x][pos.y] = c;
+        }
+    }
+
+
     public static void main(String[] args) {
 
         try {
@@ -144,38 +166,28 @@ public class Main {
                         bot.targetDock = -1;
                     } else { // bot is running normally
                         if (bot.goods == 1) { // bot has goods
+                            // Pull the goods if bot can.
                             if (mainInstance.map[bot.x][bot.y] == 'B') {
                                 bot.pull();
                                 bot.path = null;
                                 bot.targetDock = -1;
                                 continue;
                             }
-                            if (frameId % 10 == bot.id && bot.targetDock == -1 || bot.path == null) {
-                                // find a dock
-                                // label the position of the robots as obstacles, so the path
-                                // won't go through the position of the robots.
-                                for (int botId = 0; botId < Config.N_ROBOT; botId++) {
-                                    Pair pos = mainInstance.robots[botId].getPos();
-                                    mainInstance.map[pos.x][pos.y] = '#';
-                                }
-                                Path path = algo.findDock(mainInstance.map, mainInstance.docks, bot);
-                                for (int botId = 0; botId < Config.N_ROBOT; botId++) {
-                                    Pair pos = mainInstance.robots[botId].getPos();
-                                    char c = 'A';
-                                    for (Dock dock : mainInstance.docks) {
-                                        if (dock.inDock(pos)) {
-                                            c = 'B';
-                                            break;
-                                        }
+                            if (bot.targetDock == -1 || bot.path == null) {
+                                if (!Config.H_BOT_FIND_DOCK_ITERATOR || frameId % 10 == bot.id) {
+                                    // find a dock
+                                    // label the position of the robots as obstacles, so the path
+                                    // won't go through the position of the robots.
+                                    mainInstance.labelMap();
+                                    Path path = algo.findDock(mainInstance.map, mainInstance.docks, bot);
+                                    mainInstance.restoreMap();
+                                    if (path == null) {
+                                        Logger.debug("[ROBOT]", "Robot " + bot.id + " found no dock.");
+                                        continue;
                                     }
-                                    mainInstance.map[pos.x][pos.y] = c;
+                                    bot.targetDock = 1;
+                                    bot.path = path;
                                 }
-                                if (path == null) {
-                                    Logger.debug("[ROBOT]", "Robot " + bot.id + " found no dock.");
-                                    continue;
-                                }
-                                bot.targetDock = 1;
-                                bot.path = path;
                             }
                             if (bot.targetDock > -1) {
                                 bot.movePath();
@@ -190,34 +202,21 @@ public class Main {
                                 Logger.debug("[ROBOT]", "Robot " + bot.id + " got goods.");
                                 continue;
                             }
-                            if (bot.path == null && frameId % 10 == bot.id) { // find path
-                                for (int botId = 0; botId < Config.N_ROBOT; botId++) {
-                                    Pair pos = mainInstance.robots[botId].getPos();
-                                    mainInstance.map[pos.x][pos.y] = '#';
-                                }
+                            if (bot.path == null) { // find path
+                                if (!Config.H_BOT_FIND_GOOD_ITERATOR || frameId % 10 == bot.id) {
+                                    mainInstance.labelMap();
+                                    // Try to assign a goods to this robot
+                                    Path path = algo.findGoods(mainInstance.map, bot, mainInstance.goodsBucket);
+                                    mainInstance.restoreMap();
+                                    // Can't find goods
+                                    if (path == null) continue;
+                                    // Once assigned to a specific bot, the goods will be removed from the goodsBucket,
+                                    // so other bots will not be assigned to the same goods.
+                                    Pair targetPos = path.peekTargetPos();
+                                    mainInstance.goodsBucket.assignAt(targetPos);
+                                    bot.path = path;
 
-                                // Try to assign a goods to this robot
-                                Path path = algo.findGoods(mainInstance.map, bot, mainInstance.goodsBucket);
-                                for (int botId = 0; botId < Config.N_ROBOT; botId++) {
-                                    Pair pos = mainInstance.robots[botId].getPos();
-                                    char c = 'A';
-                                    for (Dock dock : mainInstance.docks) {
-                                        if (dock.inDock(pos)) {
-                                            c = 'B';
-                                            break;
-                                        }
-                                    }
-                                    mainInstance.map[pos.x][pos.y] = c;
                                 }
-                                if (path == null) {
-                                    Logger.debug("[ROBOT]", "Robot " + bot.id + " found no path.");
-                                    continue;
-                                }
-                                Pair targetPos = path.peekTargetPos();
-                                // Once assigned to a specific bot, the goods will be removed from the goodsBucket,
-                                // so other bots will not be assigned to the same goods.
-                                mainInstance.goodsBucket.assignAt(targetPos);
-                                bot.path = path;
                             }
                             if (bot.path != null) {
                                 bot.movePath();
@@ -245,27 +244,22 @@ public class Main {
                         Dock dock = mainInstance.docks[ship.pos];
                         dock.load(ship);
                         if (
-//                                ship.load_time >= Config.H_MIN_SHIP_LOAD_TIME
-                                ship.load_time >= mainInstance.boat_capacity
+                                ship.load_time >= mainInstance.boat_capacity * Config.H_MIN_SHIP_LOAD_TIME
                                         &&
                                         ship.num >= mainInstance.boat_capacity
                                         ||
                                         dock.goods <= dock.loading_speed
                                         ||
-//                                        ship.load_time >= Config.H_MAX_SHIP_LOAD_TIME
-                                        ship.load_time >= mainInstance.boat_capacity * 2
+                                        ship.load_time >= mainInstance.boat_capacity * Config.H_MAX_SHIP_LOAD_TIME
                         ) {
                             dock.assigned = false;
                             ship.go();
                             Logger.info("[SHIP]", "Ship " + ship.id + " is going to sell goods.");
                         }
                     } else { // Ship is waiting outside a dock
-                        Logger.error("[SHIP]", "Ship " + ship.id + " is waiting outside dock " + ship.pos);
                         Dock bestDock = ship.chooseDock();
                         bestDock.assigned = true;
                         ship.ship(bestDock.id);
-                        Logger.error("[SHIP]", "Ship " + ship.id + " is going to dock " + bestDock.id);
-
                     }
                 }
 

@@ -141,7 +141,7 @@ public class AStarAlgorithm implements Algorithm {
         if (target == null) return null;
         Path path = aStar(map, bot.getPos(), target.getPos());
         if (path == null) {
-            Logger.debug("[AStar]", "Exceed max depth, no path found.");
+            Logger.debug("[AStar]", "Exceed max depth, no path found. Remove goods info.");
             goodsBucket.remove(target);
             return null;
         }

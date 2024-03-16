@@ -2,6 +2,7 @@ package com.huawei.codecraft;
 
 import java.util.*;
 
+@Deprecated
 public class BreadthFirstSearchAlgorithm implements Algorithm {
 
 
