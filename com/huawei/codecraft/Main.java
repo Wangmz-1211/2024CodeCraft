@@ -125,14 +125,14 @@ public class Main {
         return id;
     }
 
-    public void labelMap() {
+    private void labelMap() {
         for (int botId = 0; botId < config.N_ROBOT; botId++) {
             Pair pos = robots[botId].getPos();
             map[pos.x][pos.y] = '#';
         }
     }
 
-    public void restoreMap() {
+    private void restoreMap() {
         for (int botId = 0; botId < config.N_ROBOT; botId++) {
             Pair pos = robots[botId].getPos();
             char c = 'A';
@@ -155,7 +155,17 @@ public class Main {
             Config config = mainInstance.config;
 
             // Configuration by args
-
+            if (args.length > 0) {
+                // Ship logic
+                config.H_MIN_SHIP_LOAD_TIME = Double.parseDouble(args[0]);
+                config.H_MAX_SHIP_LOAD_TIME = Double.parseDouble(args[1]);
+                // A* algorithm
+                config.H_ASTAR_MAX_TIME = Integer.parseInt(args[2]);
+                // Robot logic
+                config.H_DOCK_PUNISH = Integer.parseInt(args[3]);
+                config.H_BOT_FIND_GOOD_ITERATOR = Boolean.parseBoolean(args[4]);
+                config.H_BOT_FIND_DOCK_ITERATOR = Boolean.parseBoolean(args[5]);
+            }
 
             Algorithm algo = new AStarAlgorithm(config);
             mainInstance.init();

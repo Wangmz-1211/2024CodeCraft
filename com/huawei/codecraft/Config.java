@@ -14,20 +14,22 @@ public class Config {
     // -1 for prod, 0 for error, 1 for info, 2 for debug
     int DEBUG_LEVEL = 0;
     int N_GOODS_BUCKET = 10;
+    int H_D_BASE_COST = 1;
+    int H_D_HEURISTIC_COST = 2;
 
-
-    // Factors to control ship logic.
-    // The factors work base on ship capacity.
+    /**
+     * The following factors are all hyper-parameters.
+     * They are used to control the logic of the program.
+     */
+    //Ship logic
     double H_MIN_SHIP_LOAD_TIME = 1;
     double H_MAX_SHIP_LOAD_TIME = 2;
 
-    // used in A* algorithm
-    int H_D_BASE_COST = 1;
-    int H_D_HEURISTIC_COST = 2;
+    // A* algorithm
     int H_ASTAR_MAX_TIME = 6; // ms
-    int H_DOCK_PUNISH = 6;
 
-    // used in robot logic
+    // Robot logic
+    int H_DOCK_PUNISH = 6;
     boolean H_BOT_FIND_GOOD_ITERATOR = true;
     boolean H_BOT_FIND_DOCK_ITERATOR = false;
 
