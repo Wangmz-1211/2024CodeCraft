@@ -24,10 +24,29 @@ public class Ship {
     /**
      * The value of the ship
      */
+    @Deprecated
     public int value = 0;
+
+    /**
+     * The total load time of the ship.
+     */
+
     public int load_time = 0;
 
+    /**
+     * The docks that the ship can choose.
+     */
     public Dock[] docks = null;
+
+    /**
+     * The capacity of the ship, this will be set in initialization.
+     */
+    public int capacity = 0;
+
+    /**
+     * The redirect times of a ship. Set to zero when command `go` is called.
+     */
+    public int redirect = 0;
 
     public Ship(int id) {
         this.id = id;
@@ -62,7 +81,9 @@ public class Ship {
     }
 
     public void go() {
-        this.load_time = 0;
+        redirect = 0;
+        load_time = 0;
+        num = 0;
         System.out.println("go " + this.id);
     }
 }

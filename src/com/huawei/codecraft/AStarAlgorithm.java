@@ -46,7 +46,7 @@ public class AStarAlgorithm implements Algorithm {
         this.config = config;
     }
 
-    public Path aStar(char[][] map, Pair start, Pair end) {
+    public Path aStar(char[][] map, Pair start, Pair end, int timeLimit) {
         long startMs = System.currentTimeMillis();
         Logger.debug("[AStar]", "Finding path from " + start + " to " + end);
 
@@ -57,9 +57,9 @@ public class AStarAlgorithm implements Algorithm {
         closedSet.clear();
         openSet.offer(new Node(start, 0, null));
         while (!openSet.isEmpty()) {
-            if (System.currentTimeMillis() - startMs > config.H_ASTAR_MAX_TIME) {
+            if (System.currentTimeMillis() - startMs > timeLimit) {
                 Logger.debug("[AStar]", "Time used: " + (System.currentTimeMillis() - startMs) + "ms");
-                Logger.debug("[AStar]", "Exceed max depth, no path found.");
+                Logger.debug("[AStar]", "Exceed max time, no path found.");
                 return null;
             }
             Node current = openSet.poll();
@@ -138,9 +138,9 @@ public class AStarAlgorithm implements Algorithm {
     public Path findGoods(char[][] map, Robot bot, GoodsBucket goodsBucket) {
         Goods target = bot.chooseGoods(goodsBucket);
         if (target == null) return null;
-        Path path = aStar(map, bot.getPos(), target.getPos());
+        Path path = aStar(map, bot.getPos(), target.getPos(), config.H_ASTAR_MAX_TIME_GOODS);
         if (path == null) {
-            Logger.debug("[AStar]", "Exceed max depth, no path found. Remove goods info.");
+            Logger.debug("[FIND GOOD]", "Exceed max depth, no path found. Remove goods info.");
             goodsBucket.remove(target);
             return null;
         }
@@ -160,8 +160,8 @@ public class AStarAlgorithm implements Algorithm {
     public Path findDock(char[][] map, Dock[] docks, Robot bot) {
         Dock target = bot.chooseDock();
         if (target == null) return null;
-        Logger.debug("[FIND DOCK]", "Finding dock for robot at " + bot.getPos() + " to " + target.getPos() + ", " + " robot on " + map[bot.x][bot.y] + " dock on " + map[target.x][target.y]);
-        Path path = aStar(map, bot.getPos(), target.getPos());
+        Logger.debug("[FIND DOCK]", "Finding dock for robot " + bot.id + " to dock " + target.id);
+        Path path = aStar(map, bot.getPos(), target.getPos(), config.H_ASTAR_MAX_TIME_DOCK);
         if (path == null)
             bot.punishDock(target);
         return path;

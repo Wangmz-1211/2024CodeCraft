@@ -27,7 +27,7 @@ public class Main {
     private final GoodsBucket goodsBucket = new GoodsBucket();
 
 
-    private void init() throws Exception {
+    private void init() {
         Scanner scanf = new Scanner(System.in);
         for (int i = 0; i < config.S_MAP; i++) {
             ch[i] = scanf.nextLine();
@@ -63,9 +63,6 @@ public class Main {
         for (Pair p : botPos) {
             utils.mapHandler(map, p);
         }
-        for (char[] cs : map) {
-            Logger.debug("[MAP]", new String(cs));
-        }
         // Initialize Robots
         for (int i = 0; i < config.N_ROBOT; i++) {
             Robot robot = new Robot(i, config);
@@ -79,6 +76,7 @@ public class Main {
         for (int i = 0; i < config.N_SHIP; i++) {
             ships[i] = new Ship(i);
             ships[i].docks = docks;
+            ships[i].capacity = this.boat_capacity;
         }
         Logger.info("[INIT]", "Ships initialized.");
 
@@ -92,12 +90,12 @@ public class Main {
         Scanner scanf = new Scanner(System.in);
         //  frameId
         this.id = scanf.nextInt();
-        Logger.debug("[INPUT]", "Frame " + id);
+        Logger.info("[INPUT]", "Frame " + id);
         this.money = scanf.nextInt();
-        Logger.debug("[INPUT]", "Money " + money);
+        Logger.info("[INPUT]", "Money " + money);
         // Update goods
         int num = scanf.nextInt();
-        Logger.debug("[INPUT]", "Goods " + num);
+        Logger.info("[INPUT]", "Goods " + num);
         for (int i = 1; i <= num; i++) {
             int x = scanf.nextInt();
             int y = scanf.nextInt();
@@ -105,7 +103,7 @@ public class Main {
             if (map[x][y] != 'A') continue;
             goodsBucket.add(new Goods(x, y, val, id));
         }
-        Logger.info("[INPUT]", "Goods updated");
+        Logger.debug("[INPUT]", "Goods updated");
         // Update robots
         for (int i = 0; i < config.N_ROBOT; i++) {
             int goods = scanf.nextInt();
@@ -114,13 +112,13 @@ public class Main {
             int status = scanf.nextInt();
             robots[i].update(x, y, goods, status);
         }
-        Logger.info("[INPUT]", "Robots updated");
+        Logger.debug("[INPUT]", "Robots updated");
         for (int i = 0; i < 5; i++) {
             Ship ship = ships[i];
             ship.status = scanf.nextInt();
             ship.pos = scanf.nextInt();
         }
-        Logger.info("[INPUT]", "Ships updated");
+        Logger.debug("[INPUT]", "Ships updated");
         String okk = scanf.nextLine();
         return id;
     }
@@ -146,7 +144,6 @@ public class Main {
         }
     }
 
-
     public static void main(String[] args) {
 
         try {
@@ -157,23 +154,25 @@ public class Main {
             // Configuration by args
             if (args.length > 0) {
                 // Ship logic
-                config.H_MIN_SHIP_LOAD_TIME = Double.parseDouble(args[0]);
+                config.H_SHIP_CAPACITY_THRESHOLD = Integer.parseInt(args[0]);
                 config.H_MAX_SHIP_LOAD_TIME = Double.parseDouble(args[1]);
+                config.H_SHIP_REDIRECT_THRESHOLD = Integer.parseInt(args[2]);
                 // A* algorithm
-                config.H_ASTAR_MAX_TIME = Integer.parseInt(args[2]);
+                config.H_ASTAR_MAX_TIME_GOODS = Integer.parseInt(args[3]);
+                config.H_ASTAR_MAX_TIME_DOCK = Integer.parseInt(args[4]);
                 // Robot logic
-                config.H_DOCK_PUNISH = Integer.parseInt(args[3]);
-                config.H_BOT_FIND_GOOD_ITERATOR = Boolean.parseBoolean(args[4]);
-                config.H_BOT_FIND_DOCK_ITERATOR = Boolean.parseBoolean(args[5]);
+                config.H_DOCK_PUNISH = Integer.parseInt(args[5]);
+                config.H_BOT_FIND_GOOD_ITERATOR = Boolean.parseBoolean(args[6]);
+                config.H_BOT_FIND_DOCK_ITERATOR = Boolean.parseBoolean(args[7]);
             }
 
             Algorithm algo = new AStarAlgorithm(config);
             mainInstance.init();
             for (int frame = 1; frame <= 15000; frame++) {
-                Logger.info("[FRAME]", "==============================IN==============================");
+                Logger.debug("[FRAME]", "==============================IN==============================");
                 long startTime = System.currentTimeMillis();
                 int frameId = mainInstance.input();
-                Logger.info("[FRAME]", "==============================OP==============================");
+                Logger.debug("[FRAME]", "==============================OP==============================");
                 mainInstance.goodsBucket.clean(frameId);
 
                 // Robot Logic
@@ -247,34 +246,47 @@ public class Main {
                 // Ship Logic
                 for (int i = 0; i < config.N_SHIP; i++) {
                     Ship ship = mainInstance.ships[i];
-                    if (ship.status == 0) { // Ship is moving
-                        Logger.debug("[SHIP]", "Ship " + ship.id + " is moving.");
-                    } else if (ship.status == 1) {
+                    if (ship.status == 1) {
                         if (ship.pos == -1) { // Ship has sold goods, go dock
-
                             Dock bestDock = ship.chooseDock();
                             bestDock.assigned = true;
                             ship.ship(bestDock.id);
-                            Logger.info("[SHIP]", "Ship " + ship.id + " is going to dock " + bestDock.id);
+                            Logger.info("[SHIP" + ship.id + "]", "Ship " + ship.id + " is going to dock " + bestDock.id);
                             continue;
                         }
                         // Ship is in a dock[ship.pos], loading goods
                         Dock dock = mainInstance.docks[ship.pos];
                         dock.load(ship);
-                        if (
-                                ship.load_time >= mainInstance.boat_capacity * config.H_MIN_SHIP_LOAD_TIME
-                                        &&
-                                        ship.num >= mainInstance.boat_capacity
-                                        ||
-                                        dock.goods <= dock.loading_speed
-                                        ||
-                                        ship.load_time >= mainInstance.boat_capacity * config.H_MAX_SHIP_LOAD_TIME
-                        ) {
-                            dock.assigned = false;
+                        Logger.debug("[SHIP" + ship.id + "]", "Loading goods at " + ship.pos + " dock, Goods on ship: " + ship.num);
+                        Logger.debug("[SHIP" + ship.id + "]", "Dock left goods: " + dock.goods + "  Ship load time: " + ship.load_time);
+
+                        if (ship.load_time >= mainInstance.boat_capacity * config.H_MAX_SHIP_LOAD_TIME
+                                ||
+                                ship.redirect >= config.H_SHIP_REDIRECT_THRESHOLD) {
+                            // efficiency is too low, go to sell goods.
                             ship.go();
-                            Logger.info("[SHIP]", "Ship " + ship.id + " is going to sell goods.");
+                            Logger.debug("[SHIP" + ship.id + "]", "Going to sell goods.");
+                        } else if (
+                                dock.goods == 0 // dock is out of goods
+                                        ||
+                                        ship.num >= mainInstance.boat_capacity // Ship is full
+                        ) {
+                            if (mainInstance.boat_capacity - ship.num > config.H_SHIP_CAPACITY_THRESHOLD) {
+                                // Ship is far from full, redirect to another dock
+                                Dock bestDock = ship.chooseDock();
+                                bestDock.assigned = true;
+                                ship.ship(bestDock.id);
+                                ship.redirect += 1;
+                                Logger.debug("[SHIP" + ship.id + "]", "Ship " + ship.id + " is going to dock " + bestDock.id + ". Redirected " + ship.redirect + " times.");
+                            } else {
+                                // When ship is almost full, go to sell goods.
+                                ship.go();
+                                Logger.debug("[SHIP" + ship.id + "]", "Going to sell goods.");
+
+                            }
                         }
-                    } else { // Ship is waiting outside a dock
+                        dock.assigned = false;
+                    } else if (ship.status == 2) { // Ship is waiting outside a dock
                         Dock bestDock = ship.chooseDock();
                         bestDock.assigned = true;
                         ship.ship(bestDock.id);
@@ -283,7 +295,6 @@ public class Main {
 
                 // Finish
                 long frameTime = System.currentTimeMillis() - startTime;
-                Logger.info("[F TIME]", "Frame " + frameId + " finished in " + frameTime + "ms");
                 if (frameTime > 15) {
                     Logger.error("[F TIME]", "Frame " + frameId + " finished in " + frameTime + "ms");
                 }

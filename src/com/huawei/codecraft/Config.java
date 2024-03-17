@@ -12,7 +12,7 @@ public class Config {
     int N_FRAME = 15000;
     int T_GOODS = 1000;
     // -1 for prod, 0 for error, 1 for info, 2 for debug
-    int DEBUG_LEVEL = 0;
+    int DEBUG_LEVEL = 2;
     int N_GOODS_BUCKET = 10;
     int H_D_BASE_COST = 1;
     int H_D_HEURISTIC_COST = 2;
@@ -22,16 +22,23 @@ public class Config {
      * They are used to control the logic of the program.
      */
     //Ship logic
-    double H_MIN_SHIP_LOAD_TIME = 1;
-    double H_MAX_SHIP_LOAD_TIME = 2;
+
+    // When ship.capacity - ship.num <= H_SHIP_CAPACITY_THRESHOLD, the ship will go to the dock.
+    int H_SHIP_CAPACITY_THRESHOLD = 15;
+    // When ship.load_time >= H_MAX_SHIP_LOAD_TIME, the efficiency is low, go sell.
+    double H_MAX_SHIP_LOAD_TIME = .3;
+    // When ship.redirect >= H_SHIP_REDIRECT_THRESHOLD, the ship won't go to another dock.
+    int H_SHIP_REDIRECT_THRESHOLD = 3;
 
     // A* algorithm
-    int H_ASTAR_MAX_TIME = 1; // ms
+    int H_ASTAR_MAX_TIME_GOODS = 5; // ms
+    int H_ASTAR_MAX_TIME_DOCK = 2; // ms
 
     // Robot logic
     int H_DOCK_PUNISH = 0;
     boolean H_BOT_FIND_GOOD_ITERATOR = false;
     boolean H_BOT_FIND_DOCK_ITERATOR = false;
+
 
     public Config() {
     }

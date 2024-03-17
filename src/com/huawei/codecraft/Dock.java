@@ -23,7 +23,7 @@ public class Dock {
         this.y = y;
         this.transport_time = transport_time;
         this.loading_speed = loading_speed;
-        this.score = loading_speed * 100000 / transport_time;
+        updateScore();
     }
 
     public void updateScore() {
@@ -42,11 +42,13 @@ public class Dock {
      * @param ship the ship in this dock.
      */
     public void load(Ship ship) {
-        ship.num += loading_speed;
-        goods -= loading_speed;
+        int loadNum = Math.min(loading_speed, goods);
+        loadNum = Math.min(loadNum, ship.capacity - ship.num);
+        ship.num += loadNum;
+        goods -= loadNum;
         ship.load_time += 1;
-        Logger.debug("[DOCK]", "Left " + goods + " goods in dock " + id + ", loaded " + loading_speed * ship.load_time + " goods to ship.");
-        Logger.debug("[DOCK]", "Load " + loading_speed + " goods from dock " + id + " to ship " + ship.id + ", already " + ship.load_time + " times");
+        Logger.debug("[DOCK" + id + "]", "Loaded " + loadNum + " goods from dock " + id + " to ship " + ship.id);
+        Logger.debug("[DOCK" + id + "]", "Left " + goods + " goods in dock " + id);
     }
 
     public boolean inDock(Pair p) {
