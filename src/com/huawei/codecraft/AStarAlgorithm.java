@@ -95,6 +95,10 @@ public class AStarAlgorithm implements Algorithm {
         return Math.abs(startX - endX) + Math.abs(startY - endY);
     }
 
+    private int normTwo(int startX, int startY, int endX, int endY) {
+        return (int) Math.sqrt(Math.pow(startX - endX, 2) + Math.pow(startY - endY, 2));
+    }
+
     private int baseCost(Pair start, Pair curr) {
         return normOne(start.x, start.y, curr.x, curr.y);
     }

@@ -34,8 +34,9 @@ public class Ship {
     }
 
     private int getDockCost(Dock dock) {
-        return 10000 / dock.score / (Math.abs(dock.goods)+1);
+        return -Math.abs(dock.goods) * dock.score;
     }
+
     public Dock chooseDock() {
         class Node {
             final Dock dock;

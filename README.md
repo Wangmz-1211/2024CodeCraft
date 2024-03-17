@@ -147,6 +147,14 @@ $$
 
 -   Simpler, but better in most of cases.
 
+### V3
+
+$$
+f(robot, dock) = distance(robot, dock) - dock.score/2
+$$
+
+-   Better than V2 on `map-3.8`.
+
 ##  Robot choosing Goods
 
 ### V1
@@ -165,7 +173,17 @@ $$
 
 -   Simpler, but better in most of cases.
 
+### V3
+
+$$
+f(robot, goods) = distance(robot, goods) - goods.value/2
+$$
+
+-   Better than V2 on `map-3.8`.
+
 ## Ship choosing Dock
+
+### V1
 
 $$
 f(ship, dock) = \frac{10000}{dock.score \times (\abs{dock.goods}+1)}
@@ -173,5 +191,11 @@ $$
 
 -   `dock.goods`为dock中剩余货物量，由于多种因素只能获得近似值，防止除零错误进行处理
 
+### V2
 
+$$
+f(ship, dock) = dock.score \times \abs{dock.goods}
+$$
+
+-   same effect to V1, but simpler.
 

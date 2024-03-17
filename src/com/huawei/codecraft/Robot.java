@@ -56,11 +56,11 @@ public class Robot {
     }
 
     private int getGoodsCost(Goods goods) {
-        return normOne(goods.x, goods.y) - goods.value;
+        return normOne(goods.x, goods.y) - goods.value / 2;
     }
 
     private int getDockCost(Dock dock) {
-        return normOne(dock.x, dock.y) - dock.score;
+        return normOne(dock.x, dock.y) - dock.score / 2;
     }
 
     public int getDockCost(int dockId) {
@@ -85,7 +85,6 @@ public class Robot {
         }
         return rank.isEmpty() ? null : rank.poll().obj;
     }
-
 
     public void update(int x, int y, int goods, int status) {
         if (this.x == x && this.y == y && this.goods == goods && this.status == status) return;
@@ -149,7 +148,6 @@ public class Robot {
     }
 
     public void get(Goods goods) {
-
         if (this.goods != 0) return;
         this.goods = 1;
         this.value = goods.value;
