@@ -53,7 +53,7 @@ public class Ship {
     }
 
     private int getDockCost(Dock dock) {
-        return -Math.abs(dock.goods) * dock.score;
+        return -20 * dock.goods - dock.score;
     }
 
     public Dock chooseDock() {

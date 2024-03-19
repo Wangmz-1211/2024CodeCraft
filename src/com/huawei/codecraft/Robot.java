@@ -56,11 +56,11 @@ public class Robot {
     }
 
     private int getGoodsCost(Goods goods) {
-        return normOne(goods.x, goods.y) - goods.value / 2;
+        return normOne(goods.x, goods.y) - goods.value / 3;
     }
 
     private int getDockCost(Dock dock) {
-        return normOne(dock.x, dock.y) - dock.score / 2;
+        return normOne(dock.x, dock.y) + dock.goods - dock.score/2;
     }
 
     public int getDockCost(int dockId) {

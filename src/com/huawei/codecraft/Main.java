@@ -43,6 +43,7 @@ public class Main {
             dock.transport_time = scanf.nextInt();
             dock.loading_speed = scanf.nextInt();
             dock.updateScore();
+            Logger.debug("[DOCK" + id + "]", "Transport time: " + dock.transport_time + " Loading speed: " + dock.loading_speed + " Score: " + dock.score);
         }
         Logger.info("[INIT]", "Docks loaded");
         this.boat_capacity = scanf.nextInt();
@@ -259,19 +260,18 @@ public class Main {
                         dock.load(ship);
                         Logger.debug("[SHIP" + ship.id + "]", "Loading goods at " + ship.pos + " dock, Goods on ship: " + ship.num);
                         Logger.debug("[SHIP" + ship.id + "]", "Dock left goods: " + dock.goods + "  Ship load time: " + ship.load_time);
-
-                        if (ship.load_time >= mainInstance.boat_capacity * config.H_MAX_SHIP_LOAD_TIME
-                                ||
-                                ship.redirect >= config.H_SHIP_REDIRECT_THRESHOLD) {
+                        if (ship.load_time >= mainInstance.boat_capacity * config.H_MAX_SHIP_LOAD_TIME) {
                             // efficiency is too low, go to sell goods.
                             ship.go();
+                            dock.assigned = false;
                             Logger.debug("[SHIP" + ship.id + "]", "Going to sell goods.");
                         } else if (
                                 dock.goods == 0 // dock is out of goods
                                         ||
                                         ship.num >= mainInstance.boat_capacity // Ship is full
                         ) {
-                            if (mainInstance.boat_capacity - ship.num > config.H_SHIP_CAPACITY_THRESHOLD) {
+                            if (mainInstance.boat_capacity - ship.num > config.H_SHIP_CAPACITY_THRESHOLD
+                                    && ship.redirect <= config.H_SHIP_REDIRECT_THRESHOLD) {
                                 // Ship is far from full, redirect to another dock
                                 Dock bestDock = ship.chooseDock();
                                 bestDock.assigned = true;
@@ -282,10 +282,9 @@ public class Main {
                                 // When ship is almost full, go to sell goods.
                                 ship.go();
                                 Logger.debug("[SHIP" + ship.id + "]", "Going to sell goods.");
-
                             }
+                            dock.assigned = false;
                         }
-                        dock.assigned = false;
                     } else if (ship.status == 2) { // Ship is waiting outside a dock
                         Dock bestDock = ship.chooseDock();
                         bestDock.assigned = true;
