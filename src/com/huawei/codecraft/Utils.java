@@ -11,19 +11,19 @@ public class Utils {
         this.config = config;
     }
 
-    private boolean inMap(Pair pos) {
+    private boolean inMap(Position pos) {
         return pos.x >= 0 && pos.x < config.S_MAP && pos.y >= 0 && pos.y < config.S_MAP;
     }
 
-    public void mapHandler(char[][] map, Pair start) {
+    public void mapHandler(char[][] map, Position start) {
         int[] dx = {1, -1, 0, 0};
         int[] dy = {0, 0, -1, 1};
-        Deque<Pair> queue = new ArrayDeque<>();
+        Deque<Position> queue = new ArrayDeque<>();
         queue.add(start);
         while (!queue.isEmpty()) {
-            Pair pos = queue.poll();
+            Position pos = queue.poll();
             for (int i = 0; i < 4; i++) {
-                Pair next = new Pair(pos.x + dx[i], pos.y + dy[i]);
+                Position next = new Position(pos.x + dx[i], pos.y + dy[i]);
                 if (inMap(next) && map[next.x][next.y] == '.') {
                     map[next.x][next.y] = 'A';
                     queue.add(next);

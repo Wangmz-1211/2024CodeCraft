@@ -4,8 +4,6 @@
 
 package com.huawei.codecraft;
 
-import sun.rmi.runtime.Log;
-
 import java.util.*;
 
 /**
@@ -27,7 +25,8 @@ public class Main {
     private final GoodsBucket goodsBucket = new GoodsBucket();
 
 
-    private void init() {
+    private void init(AStarAlgorithm algo) {
+        long startTime = System.currentTimeMillis();
         Scanner scanf = new Scanner(System.in);
         for (int i = 0; i < config.S_MAP; i++) {
             ch[i] = scanf.nextLine();
@@ -51,19 +50,20 @@ public class Main {
 
         /*Other Logics*/
         // Initialize map information
-        List<Pair> botPos = new ArrayList<>();
+        List<Position> botPos = new ArrayList<>();
         for (int i = 0; i < config.S_MAP; i++) {
             for (int j = 0; j < config.S_MAP; j++) {
                 char c = ch[i].charAt(j);
                 if (c == 'A') {
-                    botPos.add(new Pair(i, j));
+                    botPos.add(new Position(i, j));
                 }
                 map[i][j] = c;
             }
         }
-        for (Pair p : botPos) {
+        for (Position p : botPos) {
             utils.mapHandler(map, p);
         }
+        algo.preprocess(map);
         // Initialize Robots
         for (int i = 0; i < config.N_ROBOT; i++) {
             Robot robot = new Robot(i, config);
@@ -80,7 +80,7 @@ public class Main {
             ships[i].capacity = this.boat_capacity;
         }
         Logger.info("[INIT]", "Ships initialized.");
-
+        Logger.info("[INIT]", "Initialization finished in " + (System.currentTimeMillis() - startTime) + "ms");
         // Finish
         String okk = scanf.nextLine();
         System.out.println("OK");
@@ -126,14 +126,14 @@ public class Main {
 
     private void labelMap() {
         for (int botId = 0; botId < config.N_ROBOT; botId++) {
-            Pair pos = robots[botId].getPos();
+            Position pos = robots[botId].getPos();
             map[pos.x][pos.y] = '#';
         }
     }
 
     private void restoreMap() {
         for (int botId = 0; botId < config.N_ROBOT; botId++) {
-            Pair pos = robots[botId].getPos();
+            Position pos = robots[botId].getPos();
             char c = 'A';
             for (Dock dock : docks) {
                 if (dock.inDock(pos)) {
@@ -167,8 +167,8 @@ public class Main {
                 config.H_BOT_FIND_DOCK_ITERATOR = Boolean.parseBoolean(args[7]);
             }
 
-            Algorithm algo = new AStarAlgorithm(config);
-            mainInstance.init();
+            AStarAlgorithm algo = new AStarAlgorithm(config);
+            mainInstance.init(algo);
             for (int frame = 1; frame <= 15000; frame++) {
                 Logger.debug("[FRAME]", "==============================IN==============================");
                 long startTime = System.currentTimeMillis();
@@ -230,7 +230,7 @@ public class Main {
                                     if (path == null) continue;
                                     // Once assigned to a specific bot, the goods will be removed from the goodsBucket,
                                     // so other bots will not be assigned to the same goods.
-                                    Pair targetPos = path.peekTargetPos();
+                                    Position targetPos = path.peekTargetPos();
                                     mainInstance.goodsBucket.assignAt(targetPos);
                                     bot.path = path;
 

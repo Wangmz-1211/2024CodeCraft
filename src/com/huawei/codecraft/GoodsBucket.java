@@ -2,8 +2,6 @@ package com.huawei.codecraft;
 
 import java.util.*;
 
-import static com.huawei.codecraft.Config.*;
-
 public class GoodsBucket {
 
     private static final Config config = new Config();
@@ -39,7 +37,7 @@ public class GoodsBucket {
         this.goodsSet.remove(goods);
     }
 
-    public void assignAt(Pair pos) {
+    public void assignAt(Position pos) {
         Goods goods = this.goodsArr[pos.x][pos.y];
         if (goods != null) {
             goods.assigned = true;

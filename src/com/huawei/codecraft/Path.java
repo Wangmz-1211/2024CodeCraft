@@ -5,19 +5,19 @@ import java.util.Deque;
 
 public class Path {
 
-    Deque<Pair> path = null;
+    Deque<Position> path = null;
 
-    public Path(Deque<Pair> path) {
+    public Path(Deque<Position> path) {
         this.path = path;
     }
 
     public Path clone() {
-        Deque<Pair> newPath = new ArrayDeque<>();
+        Deque<Position> newPath = new ArrayDeque<>();
         newPath.addAll(path);
         return new Path(newPath);
     }
 
-    public Path cloneAndAppend(Pair p) {
+    public Path cloneAndAppend(Position p) {
         Path newPath = clone();
         newPath.path.add(p);
         return newPath;
@@ -27,15 +27,15 @@ public class Path {
         return path.isEmpty();
     }
 
-    public Pair pollFirst() {
+    public Position pollFirst() {
         return path.pollFirst();
     }
 
-    public boolean offer(Pair p) {
+    public boolean offer(Position p) {
         return path.offer(p);
     }
 
-    public boolean offerFirst(Pair p) {
+    public boolean offerFirst(Position p) {
         return path.offerFirst(p);
     }
 
@@ -44,11 +44,11 @@ public class Path {
         return path.size();
     }
 
-    public Pair poll() {
+    public Position poll() {
         return path.poll();
     }
 
-    public Pair peekTargetPos() {
+    public Position peekTargetPos() {
         return path.peekLast();
     }
 }

@@ -35,7 +35,7 @@ public class Config {
     int H_ASTAR_MAX_TIME_DOCK = 2; // ms
 
     // Robot logic
-    int H_DOCK_PUNISH = 10;
+    int H_DOCK_PUNISH = 1;
     boolean H_BOT_FIND_GOOD_ITERATOR = false;
     boolean H_BOT_FIND_DOCK_ITERATOR = false;
 

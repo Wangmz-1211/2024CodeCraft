@@ -1,8 +1,5 @@
 package com.huawei.codecraft;
 
-import com.huawei.codecraft.Config;
-import com.huawei.codecraft.Pair;
-
 public class Goods {
 
     public static final Config config = new Config();
@@ -30,7 +27,7 @@ public class Goods {
                 '}';
     }
 
-    public Pair getPos() {
-        return new Pair(x, y);
+    public Position getPos() {
+        return new Position(x, y);
     }
 }

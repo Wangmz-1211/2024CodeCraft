@@ -1,7 +1,5 @@
 package com.huawei.codecraft;
 
-import com.huawei.codecraft.Pair;
-
 public class Dock {
 
     public int id;
@@ -30,8 +28,8 @@ public class Dock {
         this.score = loading_speed * 100000 / transport_time;
     }
 
-    public Pair getPos() {
-        return new Pair(x, y);
+    public Position getPos() {
+        return new Position(x, y);
     }
 
     /**
@@ -51,7 +49,7 @@ public class Dock {
         Logger.debug("[DOCK" + id + "]", "Left " + goods + " goods in dock " + id);
     }
 
-    public boolean inDock(Pair p) {
+    public boolean inDock(Position p) {
         return x <= p.x && p.x <= x + 3 && y <= p.y && p.y <= y + 3;
     }
 }

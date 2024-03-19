@@ -2,7 +2,6 @@ package com.huawei.codecraft;
 
 
 import java.util.Comparator;
-import java.util.List;
 import java.util.PriorityQueue;
 
 public class Robot {
@@ -56,11 +55,11 @@ public class Robot {
     }
 
     private int getGoodsCost(Goods goods) {
-        return normOne(goods.x, goods.y) - goods.value / 3;
+        return normOne(goods.x, goods.y) - goods.value / 2;
     }
 
     private int getDockCost(Dock dock) {
-        return normOne(dock.x, dock.y) + dock.goods - dock.score/2;
+        return normOne(dock.x, dock.y) + dock.goods - dock.score / 2;
     }
 
     public int getDockCost(int dockId) {
@@ -104,7 +103,7 @@ public class Robot {
             path = null;
             return;
         }
-        Pair next = path.pollFirst();
+        Position next = path.pollFirst();
         int dx = next.x - x;
         int dy = next.y - y;
         if (dx == 1 && dy == 0) {
@@ -156,13 +155,13 @@ public class Robot {
         System.out.println("get " + id);
     }
 
-    public Pair getPos() {
-        return new Pair(x, y);
+    public Position getPos() {
+        return new Position(x, y);
     }
 
     public void pull() {
         if (this.goods == 0) return;
-        Pair pos = getPos();
+        Position pos = getPos();
         this.goods = 0;
         this.value = 0;
         for (Dock dock : docks) {

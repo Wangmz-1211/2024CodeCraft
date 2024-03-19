@@ -1,10 +1,10 @@
 package com.huawei.codecraft;
 
-public class Pair {
+public class Position {
     public Integer x;
     public Integer y;
 
-    public Pair(Integer x, Integer y) {
+    public Position(Integer x, Integer y) {
         this.x = x;
         this.y = y;
     }
@@ -19,8 +19,8 @@ public class Pair {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Pair pair = (Pair) o;
-        return x.equals(pair.x) && y.equals(pair.y);
+        Position position = (Position) o;
+        return x.equals(position.x) && y.equals(position.y);
     }
 
     @Override
