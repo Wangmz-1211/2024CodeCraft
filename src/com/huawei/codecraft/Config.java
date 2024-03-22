@@ -31,10 +31,9 @@ public class Config {
     // Robot logic
     int H_DOCK_PUNISH = 1;
 
-    int H_S_REGION = 16;
+    int H_INIT_REGION_RATE = 10;
+    int H_CANDIDATE_SIZE = 1;
 
-    int GRID_SHIFT_X = 4;
-    int GRID_SHIFT_Y = 3;
     public Config() {
     }
 }

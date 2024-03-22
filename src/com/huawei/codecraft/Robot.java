@@ -61,29 +61,11 @@ public class Robot {
         }
     }
 
-    private int getGoodsCost(Goods goods, AStarAlgorithm algo) {
-        Position startRegion = algo.getRegion(this.getPos());
-        Position endRegion = algo.getRegion(goods.getPos());
-        if (startRegion.equals(endRegion)) {
-            return normOne(goods.x, goods.y) - goods.value / 2;
-        }
-        int d = algo.getRegionDistance(startRegion, endRegion);
-        if (d == 100000) return normOne(goods.x, goods.y) - goods.value;
-        return d - goods.value;
-    }
 
     private int getGoodsCost(Goods goods) {
         return normOne(goods.x, goods.y);// - goods.value;
     }
 
-    private int getDockCost(Dock dock, AStarAlgorithm algo) {
-        Position startRegion = new Position(x, y);
-        Position endRegion = new Position(dock.x, dock.y);
-        int d = algo.getRegionDistance(startRegion, endRegion);
-        if (d == 100000) return normOne(dock.x, dock.y) - dock.score / 3 - (dock.assigned ? 30 : 0);
-        return d - dock.score / 5 - (dock.assigned ? 100 : 0);
-
-    }
 
     private int getDockCost(Dock dock) {
         return normOne(dock.x, dock.y) - dock.score - (dock.assigned ? 20 : 0) + 50 * Math.abs(id - dock.id);
@@ -93,26 +75,6 @@ public class Robot {
         return getDockCost(docks[dockId]) + dockPunish[dockId];
     }
 
-    public int getDockCost(int dockId, AStarAlgorithm algo) {
-        return getDockCost(docks[dockId], algo) + dockPunish[dockId];
-    }
-
-    /**
-     * This is a choose goods strategy for A* algorithm.
-     *
-     * @param goodsBucket
-     * @param algo
-     * @return
-     */
-    public Goods chooseGoods(GoodsBucket goodsBucket, AStarAlgorithm algo) {
-        PriorityQueue<Node<Goods>> rank = new PriorityQueue<>(Comparator.comparingInt(o -> o.cost));
-        for (Goods goods : goodsBucket.goodsSet) {
-            if (goods.assigned) continue;
-            int cost = getGoodsCost(goods, algo);
-            rank.offer(new Node<>(goods, cost));
-        }
-        return rank.isEmpty() ? null : rank.poll().obj;
-    }
 
     /**
      * This is a generic goods choosing strategy.
@@ -126,21 +88,6 @@ public class Robot {
             if (goods.assigned) continue;
             int cost = getGoodsCost(goods);
             rank.offer(new Node<>(goods, cost));
-        }
-        return rank.isEmpty() ? null : rank.poll().obj;
-    }
-
-    /**
-     * This is a choose dock strategy for A* algorithm.
-     *
-     * @param algo
-     * @return
-     */
-    public Dock chooseDock(AStarAlgorithm algo) {
-        PriorityQueue<Node<Dock>> rank = new PriorityQueue<>(Comparator.comparingInt(o -> o.cost));
-        for (int dockId = 0; dockId < config.N_DOCK; dockId++) {
-            int cost = getDockCost(dockId, algo);
-            rank.offer(new Node<>(docks[dockId], cost));
         }
         return rank.isEmpty() ? null : rank.poll().obj;
     }

@@ -4,7 +4,7 @@ import java.util.*;
 
 public class BFSAlgorithm implements Algorithm {
     private char[][] map = null;
-    private final Map<AStarAlgorithm.Pair, Path> regionPaths = new HashMap<>();
+    private final Map<Pair, Path> regionPaths = new HashMap<>();
     private final Set<Position> regions = new HashSet<>();
     private Config config = null;
 
@@ -34,7 +34,9 @@ public class BFSAlgorithm implements Algorithm {
         return map[x][y] != '#' && map[x][y] != '*' && map[x][y] != 'W' && map[x][y] != '.';
     }
 
-
+    /**
+     * Label the map with robots as '#'.<br/>
+     */
     private void lableMap() {
         for (int botId = 0; botId < config.N_ROBOT; botId++) {
             Position pos = robots[botId].getPos();
@@ -42,6 +44,9 @@ public class BFSAlgorithm implements Algorithm {
         }
     }
 
+    /**
+     * Restore the map after labeling the map.<br/>
+     */
     private void restoreMap() {
         for (int botId = 0; botId < config.N_ROBOT; botId++) {
             Position pos = robots[botId].getPos();
@@ -56,6 +61,14 @@ public class BFSAlgorithm implements Algorithm {
         }
     }
 
+    /**
+     * Find the path from start to end by BFS.<br/>
+     *
+     * @param map
+     * @param start
+     * @param end
+     * @return
+     */
     private Path bfs(char[][] map, Position start, Position end) {
 
         lableMap();
@@ -91,27 +104,44 @@ public class BFSAlgorithm implements Algorithm {
 
     @Override
     public Path findGoods(char[][] map, Robot bot, GoodsBucket goodsBucket) {
-        return bfsFindGoods(map, bot, goodsBucket);
-
-        // In a whole land
-        /*
-            Goods target = bot.chooseGoods(goodsBucket);
-            if (target == null) return null;
-            Path p = findPath(bot.getPos(), target.getPos());
-            if (p == null) {
-                goodsBucket.remove(target);
-                return null;
-            }
-            return p;
-        */
+//        return findGoodsByStrategy(map, bot, goodsBucket);
+        return findGoodsByBfs(map, bot, goodsBucket);
     }
 
-    private Path bfsFindGoods(char[][] map, Robot bot, GoodsBucket goodsBucket) {
+    /**
+     * Find the nearest goods by strategy.<br/>
+     * The strategy is to find the goods with the lowest cost.<br/>
+     *
+     * @param map
+     * @param bot
+     * @param goodsBucket
+     * @return
+     */
+    private Path findGoodsByStrategy(char[][] map, Robot bot, GoodsBucket goodsBucket) {
+        Goods target = bot.chooseGoods(goodsBucket);
+        if (target == null) return null;
+        Path p = findPath(bot.getPos(), target.getPos());
+        if (p == null) {
+            goodsBucket.remove(target);
+            return null;
+        }
+        return p;
+    }
+
+    /**
+     * Find the nearest H_CANDIDATE_SIZE goods, then choose the one with the highest value.<br/>
+     *
+     * @param map
+     * @param bot
+     * @param goodsBucket
+     * @return
+     */
+    private Path findGoodsByBfs(char[][] map, Robot bot, GoodsBucket goodsBucket) {
         int[] dx = {1, -1, 0, 0};
         int[] dy = {0, 0, -1, 1};
         Deque<Position> queue = new ArrayDeque<>();
         Set<Position> visited = new HashSet<>();
-        int candidateSize = 1;
+        int candidateSize = config.H_CANDIDATE_SIZE;
         List<Goods> candidates = new LinkedList<>();
         queue.offer(bot.getPos());
         visited.add(bot.getPos());
@@ -150,14 +180,20 @@ public class BFSAlgorithm implements Algorithm {
         return null;
     }
 
+    /**
+     * Find the path to the dock.<br/>
+     *
+     * @param map
+     * @param docks
+     * @param bot
+     * @return
+     */
     @Override
     public Path findDock(char[][] map, Dock[] docks, Robot bot) {
         Random random = new Random();
         Dock target = bot.chooseDock();
         if (target == null) return null;
         Position targetPos = target.getPos();
-        targetPos.x += random.nextInt(3);
-        targetPos.y += random.nextInt(3);
         Path p = findPath(bot.getPos(), targetPos);
         if (p == null)
             bot.punishDock(target);
@@ -165,6 +201,13 @@ public class BFSAlgorithm implements Algorithm {
     }
 
 
+    /**
+     * Preprocess the map.<br/>
+     * 1. BFS from a point to randomly generate some regions.<br/>
+     * 2. BFS from each region to each region to generate paths between regions.
+     *
+     * @param map the map to preprocess, the '.' robots could pass should be marked as 'A'.
+     */
     @Override
     public void preprocess(char[][] map) {
         Random random = new Random();
@@ -186,7 +229,7 @@ public class BFSAlgorithm implements Algorithm {
                 if (!visited.contains(next) && map[next.x][next.y] == 'A') {
                     queue.offer(next);
                     visited.add(next);
-                    if (random.nextInt(1000) < 13) {
+                    if (random.nextInt(1000) < config.H_INIT_REGION_RATE) {
                         regions.add(next);
                     }
                 }
@@ -214,7 +257,7 @@ public class BFSAlgorithm implements Algorithm {
                         pos = parents.get(pos);
                     }
                     path.poll();
-                    regionPaths.put(new AStarAlgorithm.Pair(region, current), path);
+                    regionPaths.put(new Pair(region, current), path);
 
                 }
                 boolean flag = random.nextBoolean();
@@ -239,6 +282,13 @@ public class BFSAlgorithm implements Algorithm {
         }
     }
 
+    /**
+     * Find the nearest region of a position.<br/>
+     * This method will be used in findPath method.
+     *
+     * @param position the position to find the nearest region
+     * @return the nearest region of the position
+     */
     private Position findNearestRegion(Position position) {
         if (regions.contains(position)) return position;
         int[] dx = {-1, 1, 0, 0};
@@ -263,6 +313,18 @@ public class BFSAlgorithm implements Algorithm {
         return null;
     }
 
+    /**
+     * Find the path from start to end.<br/>
+     * 1. Find the nearest region for start and end.<br/>
+     * 2. Find the path from start to startRegion.<br/>
+     * 3. Find the path from endRegion to end.<br/>
+     * 4. Find the path from startRegion to endRegion.<br/>
+     * 5. Merge the paths.
+     *
+     * @param start start position
+     * @param end   end position
+     * @return the path from start to end, not including start.
+     */
     private Path findPath(Position start, Position end) {
         Position startRegion = findNearestRegion(start);
         Position endRegion = findNearestRegion(end);
@@ -270,14 +332,14 @@ public class BFSAlgorithm implements Algorithm {
         if (startRegion.equals(endRegion)) {
             return bfs(map, start, end);
         }
-        if (!regionPaths.containsKey(new AStarAlgorithm.Pair(startRegion, endRegion))) {
+        if (!regionPaths.containsKey(new Pair(startRegion, endRegion))) {
             return null;
         }
         Path startToStartRegion = bfs(map, start, startRegion);
         if (startToStartRegion == null) return null;
         Path endToEndRegion = bfs(map, endRegion, end);
         if (endToEndRegion == null) return null;
-        Path startRegionToEndRegion = regionPaths.get(new AStarAlgorithm.Pair(startRegion, endRegion));
+        Path startRegionToEndRegion = regionPaths.get(new Pair(startRegion, endRegion));
         if (startRegionToEndRegion == null) return null;
         Path path = new Path(new ArrayDeque<>());
         path.path.addAll(startToStartRegion.path);
