@@ -53,10 +53,10 @@ public class Ship {
     }
 
     private int getDockCost(Dock dock) {
-        return -20 * dock.goods - dock.score;
+        return -8 * dock.goods - dock.score;
     }
 
-    public Dock chooseDock() {
+    public Dock chooseDock(int frameId) {
         class Node {
             final Dock dock;
             final int cost;
@@ -83,7 +83,6 @@ public class Ship {
     public void go() {
         redirect = 0;
         load_time = 0;
-        num = 0;
         System.out.println("go " + this.id);
     }
 }

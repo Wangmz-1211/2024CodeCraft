@@ -6,6 +6,8 @@ import java.util.*;
 
 public class AStarAlgorithm implements Algorithm {
 
+    Random random = new Random();
+
     static class Node {
         Position position;
         int cost;
@@ -111,7 +113,7 @@ public class AStarAlgorithm implements Algorithm {
     }
 
     private int totalCost(Position start, Position curr, Position end) {
-        return config.H_D_BASE_COST * baseCost(start, curr) + config.H_D_HEURISTIC_COST * heuristicCost(curr, end);
+        return baseCost(start, curr) + heuristicCost(curr, end);
     }
 
     private boolean isValidPosition(char[][] map, int x, int y) {
@@ -139,9 +141,8 @@ public class AStarAlgorithm implements Algorithm {
 
     @Override
     public Path findGoods(char[][] map, Robot bot, GoodsBucket goodsBucket) {
-        Goods target = bot.chooseGoods(goodsBucket);
+        Goods target = bot.chooseGoods(goodsBucket, this);
         if (target == null) return null;
-//        Path path = aStar(map, bot.getPos(), target.getPos(), config.H_ASTAR_MAX_TIME_GOODS);
         Path path = aStarWithPreprocessing(map, bot.getPos(), target.getPos());
         if (path == null) {
             Logger.debug("[FIND GOOD]", "Exceed max depth, no path found. Remove goods info.");
@@ -149,8 +150,6 @@ public class AStarAlgorithm implements Algorithm {
             return null;
         }
         return path;
-
-
     }
 
     /**
@@ -164,11 +163,13 @@ public class AStarAlgorithm implements Algorithm {
 
     @Override
     public Path findDock(char[][] map, Dock[] docks, Robot bot) {
-        Dock target = bot.chooseDock();
+        Dock target = bot.chooseDock(this);
         if (target == null) return null;
         Logger.debug("[FIND DOCK]", "Finding dock for robot " + bot.id + " to dock " + target.id);
-
-//        Path path = aStar(map, bot.getPos(), target.getPos(), config.H_ASTAR_MAX_TIME_DOCK);
+        Position targetPos = target.getPos();
+        // Add a random factor to the dock
+        targetPos.x += random.nextInt(4);
+        targetPos.y += random.nextInt(4);
         Path path = aStarWithPreprocessing(map, bot.getPos(), target.getPos());
 
         if (path == null)
@@ -186,7 +187,7 @@ public class AStarAlgorithm implements Algorithm {
         return path;
     }
 
-    class Pair {
+    static class Pair {
         public Position first;
         public Position second;
 
@@ -214,7 +215,6 @@ public class AStarAlgorithm implements Algorithm {
     }
 
     private final Map<Pair, Path> regionPaths = new HashMap<>();
-    private final int regionSize = 10;
 
     private Path bfs(char[][] map, Position start, Position end) {
         int[] dx = {1, -1, 0, 0};
@@ -252,27 +252,27 @@ public class AStarAlgorithm implements Algorithm {
      * @param map
      */
 
+    @Override
     public void preprocess(char[][] map) {
         int[] dx = {1, -1, 0, 0};
         int[] dy = {0, 0, -1, 1};
         int width = map[0].length;
         int height = map.length;
         HashSet<Position> regions = new HashSet<>();
-        for (int i = 0; i < width; i += regionSize) {
-            for (int j = 0; j < height; j += regionSize) {
-                regions.add(new Position(i, j));
+        for (int i = 0; i < width; i += config.H_S_REGION) {
+            for (int j = 0; j < height; j += config.H_S_REGION) {
+                regions.add(new Position(i + config.GRID_SHIFT_X, j + config.GRID_SHIFT_Y));
             }
         }
         for (Position region : regions) {
-            if (map[region.x][region.y] != 'A') continue;
-            Logger.debug("[Preprocess]", "Region: " + region);
+            if (!(map[region.x][region.y] == 'A' || map[region.x][region.y] == 'B')) continue;
             Deque<Position> queue = new ArrayDeque<>();
             Map<Position, Position> parents = new HashMap<>();
             queue.offer(region);
             parents.put(region, null);
             while (!queue.isEmpty()) {
                 Position current = queue.poll();
-                if (regions.contains(current) && !current.equals(region)) {
+                if ((regions.contains(current) && !current.equals(region)) || map[current.x][current.y] == 'B') {
                     // build path
                     Path path = new Path(new ArrayDeque<>());
                     Position pos = current;
@@ -281,14 +281,26 @@ public class AStarAlgorithm implements Algorithm {
                         pos = parents.get(pos);
                     }
                     path.poll();
+                    Logger.debug("[Preprocess]", region.toString() + " -> " + current);
                     regionPaths.put(new Pair(region, current), path);
-                    Logger.debug("[Preprocess]", "From " + region + " to " + current + ", Found.");
+
                 }
-                for (int i = 0; i < 4; i++) {
-                    Position next = new Position(current.x + dx[i], current.y + dy[i]);
-                    if (isValidPosition(map, next) && !parents.containsKey(next)) {
-                        queue.offer(next);
-                        parents.put(next, current);
+                boolean flag = random.nextBoolean();
+                if (flag) {
+                    for (int i = 3; i >= 0; i--) {
+                        Position next = new Position(current.x + dx[i], current.y + dy[i]);
+                        if (isValidPosition(map, next) && !parents.containsKey(next)) {
+                            queue.offer(next);
+                            parents.put(next, current);
+                        }
+                    }
+                } else {
+                    for (int i = 0; i < 4; i++) {
+                        Position next = new Position(current.x + dx[i], current.y + dy[i]);
+                        if (isValidPosition(map, next) && !parents.containsKey(next)) {
+                            queue.offer(next);
+                            parents.put(next, current);
+                        }
                     }
                 }
             }
@@ -297,12 +309,12 @@ public class AStarAlgorithm implements Algorithm {
 
     public Path aStarWithPreprocessing(char[][] map, Position start, Position end) {
         Logger.debug("[AStarGrid]", "start: " + start + ", end: " + end);
-        Position startRegion = new Position(start.x / regionSize * regionSize, start.y / regionSize * regionSize);
+        Position startRegion = getRegion(start);
         Position endRegion;
         if (map[end.x][end.y] == 'B')
             endRegion = end;
         else
-            endRegion = new Position(end.x / regionSize * regionSize, end.y / regionSize * regionSize);
+            endRegion = getRegion(end);
         // If in a same region, directly use aStar
         if (startRegion.equals(endRegion)) {
             return aStar(map, start, end, 3);
@@ -340,4 +352,16 @@ public class AStarAlgorithm implements Algorithm {
         }
     }
 
+    public Position getRegion(Position pos) {
+        return new Position(
+                (pos.x + config.GRID_SHIFT_X) / config.H_S_REGION * config.H_S_REGION + config.GRID_SHIFT_X,
+                (pos.y + config.GRID_SHIFT_Y) / config.H_S_REGION * config.H_S_REGION + config.GRID_SHIFT_Y
+        );
+    }
+
+    public int getRegionDistance(Position startRegion, Position endRegion) {
+        Path p = regionPaths.get(new Pair(startRegion, endRegion));
+        if (p == null) return 100000;
+        return p.path.size();
+    }
 }
