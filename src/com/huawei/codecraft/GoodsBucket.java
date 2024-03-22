@@ -19,6 +19,7 @@ public class GoodsBucket {
     }
 
     public void add(Goods goods) {
+        if (goods.value < 100) return;
         int x = goods.x;
         int y = goods.y;
 

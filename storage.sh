@@ -7,3 +7,4 @@ for i in {0..4};
 do
     grep "SHSHIP$i" info.log > ship$i.log
 done
+grep "HGOODS" info.log > goods.log

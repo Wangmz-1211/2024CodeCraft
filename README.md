@@ -27,15 +27,15 @@ H_BOT_FIND_GOOD_ITERATOR    \
 H_BOT_FIND_DOCK_ITERATOR
 ```
 
-## Grid Searching hyper-parameters
+## Grid Searching hyper-parameters @Deprecated
+
+>   Deprecated because this is time comsuming, and the effect is not very well compared to changing cost functions.
 
 This is a shell script to run the judge program with different hyper-parameters.
 
 The result will be saved in `result.log` and the error will be saved in `err.log`.
 
 The result can be easily analysis by python.
-
-**This is out of date now, just an example.
 
 ```shell
 EXEC=./PreliminaryJudge # The judge program
@@ -68,7 +68,7 @@ done
 
 ```
 
-## Args
+## Args @Deprecated
 
 - `H_SHIP_CAPACITY_THRESHOLD` - When the capacity of a ship is lower than this, the ship won't redirect to another dock.
 - `H_MAX_SHIP_LOAD_TIME` - The maximum frame a ship stay in docks is $\text{H\_MAX\_SHIP\_LOAD\_TIME} *
@@ -84,7 +84,7 @@ done
 
 # Main Loop
 
-## :robot: Robot Logic
+## :robot: Robot Logic @Outdate
 
 ```mermaid
 graph TD
@@ -109,7 +109,7 @@ graph TD
 	status --0--> recovering ------> e((end))
 ```
 
-## :ship: Ship Logic
+## :ship: Ship Logic @Outdate
 
 ```mermaid
 graph TD
@@ -130,6 +130,36 @@ graph TD
   status --2--> waiting
 	waiting--> choose_dock[choose]
 ```
+
+# Data Analysis
+
+## :robot: Robots
+
+![image-20240323014413047](http://wangmz-markdown.oss-cn-shanghai.aliyuncs.com/img/image-20240323014413047.png)
+
+![image-20240323014419483](http://wangmz-markdown.oss-cn-shanghai.aliyuncs.com/img/image-20240323014419483.png)
+
+![image-20240323014429811](http://wangmz-markdown.oss-cn-shanghai.aliyuncs.com/img/image-20240323014429811.png)
+
+
+
+## :ship: Ships
+
+![image-20240323014331003](http://wangmz-markdown.oss-cn-shanghai.aliyuncs.com/img/image-20240323014331003.png)
+
+## :anchor: Docks
+
+![image-20240323014355181](http://wangmz-markdown.oss-cn-shanghai.aliyuncs.com/img/image-20240323014355181.png)
+
+![image-20240323014342251](http://wangmz-markdown.oss-cn-shanghai.aliyuncs.com/img/image-20240323014342251.png)
+
+![image-20240323014349138](http://wangmz-markdown.oss-cn-shanghai.aliyuncs.com/img/image-20240323014349138.png)
+
+## :package: Goods
+
+![image-20240323014136764](http://wangmz-markdown.oss-cn-shanghai.aliyuncs.com/img/image-20240323014136764.png)
+
+![image-20240323014259392](http://wangmz-markdown.oss-cn-shanghai.aliyuncs.com/img/image-20240323014259392.png)
 
 # Cost Functions
 
@@ -167,6 +197,20 @@ $$
 
 - Better than V2 on `map-3.8`.
 
+### V4
+
+$$
+f(robot, dock) = 
+distance(robot, dock) - dock.score \\
+- (dock.assigned \ ? \ 20:0) \\
++ \ 50 \times \abs{dock.id - robot.id} \\
++ \ punish(robot, dock)
+$$
+
+-   Robots prefer to go to the dock assigned by ships, so the ship would get more goods a time.
+-   Robots prefer to go to the dock with the same id  to themselves, so they won’t gather together.
+-   Whenever a robot cannot find a path to a dock, the dock will be punished. So it prefers not to go to that dock.
+
 ## Robot choosing Goods
 
 ### V1
@@ -193,6 +237,13 @@ $$
 
 - Better than V2 on `map-3.8`.
 
+### V4
+
+**choose nearest goods**
+$$
+f(robot, goods) = path\_length(robot, goods)
+$$
+
 ## Ship choosing Dock
 
 ### V1
@@ -210,4 +261,12 @@ f(ship, dock) = dock.score \times \abs{dock.goods}
 $$
 
 - same effect to V1, but simpler.
+
+### V4
+
+$$
+f(ship, dock) = -8 \times dock.goods - dock.score
+$$
+
+
 

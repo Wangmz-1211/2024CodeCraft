@@ -118,13 +118,6 @@ public class Robot {
         }
     }
 
-    private int distance(Robot robot) {
-        return Math.abs(x - robot.x) + Math.abs(y - robot.y);
-    }
-
-    private boolean validPlace(int x, int y) {
-        return x >= 0 && x < xLimit && y >= 0 && y < yLimit && map[x][y] != '#' && map[x][y] != '*';
-    }
 
     public void movePath() {
         if (path == null) return;

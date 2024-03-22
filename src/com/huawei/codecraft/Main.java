@@ -108,6 +108,7 @@ public class Main {
             int val = scanf.nextInt();
             if (map[x][y] != 'A') continue;
             goodsBucket.add(new Goods(x, y, val, id));
+            Logger.debug("[HGOODS]", "" + val);
         }
         Logger.debug("[INPUT]", "Goods updated");
         // Update robots
