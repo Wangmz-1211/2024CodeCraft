@@ -21,12 +21,12 @@ public class Config {
      */
     //Ship logic
 
-    // When ship.capacity - ship.num <= H_SHIP_CAPACITY_THRESHOLD, the ship will go to the dock.
-    int H_SHIP_CAPACITY_THRESHOLD = 100;
+    // When ship.capacity - ship.num >= H_SHIP_CAPACITY_THRESHOLD, the ship will go to the dock.
+    int H_SHIP_CAPACITY_THRESHOLD = 80;
     // When ship.load_time >= H_MAX_SHIP_LOAD_TIME, the efficiency is low, go sell.
     double H_MAX_SHIP_LOAD_TIME = 1;
     // When ship.redirect >= H_SHIP_REDIRECT_THRESHOLD, the ship won't go to another dock.
-    int H_SHIP_REDIRECT_THRESHOLD = 1;
+    int H_SHIP_REDIRECT_THRESHOLD = 0;
 
     // Robot logic
     int H_DOCK_PUNISH = 1;

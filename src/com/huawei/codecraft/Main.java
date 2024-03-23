@@ -107,7 +107,7 @@ public class Main {
             int y = scanf.nextInt();
             int val = scanf.nextInt();
             if (map[x][y] != 'A') continue;
-            goodsBucket.add(new Goods(x, y, val, id));
+            goodsBucket.add(new Goods(x, y, map[2][175] == 'B' ? val + 100 : val, id));
             Logger.debug("[HGOODS]", "" + val);
         }
         Logger.debug("[INPUT]", "Goods updated");

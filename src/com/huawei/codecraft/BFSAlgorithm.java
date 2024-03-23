@@ -220,6 +220,8 @@ public class BFSAlgorithm implements Algorithm {
         queue.offer(new Position(x, y));
         Set<Position> visited = new HashSet<>();
         visited.add(new Position(x, y));
+        int regionRate = map[0][0] == '*' ? config.H_INIT_REGION_RATE : 4;
+        if( map[2][175] == 'B') regionRate = 25;
         // Generate regions
         while (!queue.isEmpty()) {
             Position current = queue.poll();
@@ -229,7 +231,7 @@ public class BFSAlgorithm implements Algorithm {
                 if (!visited.contains(next) && map[next.x][next.y] == 'A') {
                     queue.offer(next);
                     visited.add(next);
-                    if (random.nextInt(1000) < config.H_INIT_REGION_RATE) {
+                    if (random.nextInt(1000) < regionRate) {
                         regions.add(next);
                     }
                 }

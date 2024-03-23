@@ -68,7 +68,7 @@ public class Robot {
 
 
     private int getDockCost(Dock dock) {
-        return normOne(dock.x, dock.y) - dock.score - (dock.assigned ? 20 : 0) + 50 * Math.abs(id - dock.id);
+        return - (dock.assigned ? 150 : 0) + 200 * Math.abs(id - dock.id) -  dock.score;
     }
 
     private int getDockCost(int dockId) {
@@ -129,7 +129,14 @@ public class Robot {
 
         // check if the next position is occupied by other robots
         for (Robot robot : robots) {
-            if (robot != this && (robot.getPos().equals(next) || (robot.path != null && robot.path.path.peekFirst() != null && robot.path.path.peekFirst().equals(next)))) {
+            if (robot != this && (
+                        robot.getPos().equals(next) // go to a robot's position
+                        ||
+                        (robot.path != null && // go to a robot's first position in the path
+                                robot.path.path.peekFirst() != null &&
+                                    robot.path.path.peekFirst().equals(next))
+                    )
+            ) {
                 this.path = null;
                 this.targetDock = -1;
                 return;
