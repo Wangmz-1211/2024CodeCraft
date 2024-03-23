@@ -12,7 +12,7 @@ public class Config {
     int N_FRAME = 15000;
     int T_GOODS = 1000;
     // -1 for prod, 0 for error, 1 for info, 2 for debug
-    int DEBUG_LEVEL = 2;
+    int DEBUG_LEVEL = -1;
     int N_GOODS_BUCKET = 10;
 
     /**
@@ -29,7 +29,7 @@ public class Config {
     int H_SHIP_REDIRECT_THRESHOLD = 0;
 
     // Robot logic
-    int H_DOCK_PUNISH = 1;
+    int H_DOCK_PUNISH = 100;
 
     int H_INIT_REGION_RATE = 10;
     int H_CANDIDATE_SIZE = 1;

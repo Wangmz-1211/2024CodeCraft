@@ -117,6 +117,7 @@ public class Main {
             int x = scanf.nextInt();
             int y = scanf.nextInt();
             int status = scanf.nextInt();
+            robots[i].frameId = id;
             robots[i].update(x, y, goods, status);
         }
         Logger.debug("[INPUT]", "Robots updated");
@@ -266,7 +267,7 @@ public class Main {
                     if (ship.status == 1) {
                         if (ship.pos == -1) { // Ship has sold goods, go dock
                             ship.num = 0;
-                            Dock bestDock = ship.chooseDock(frameId);
+                            Dock bestDock = mainInstance.docks[2 * ship.id];
                             bestDock.assigned = true;
                             ship.ship(bestDock.id);
                             continue;
@@ -274,34 +275,35 @@ public class Main {
                         // Ship is in a dock[ship.pos], loading goods
                         Dock dock = mainInstance.docks[ship.pos];
                         dock.load(ship);
-                        if (config.N_FRAME - dock.transport_time - frameId < 10) {
+
+                        if (frameId > config.N_FRAME - dock.transport_time - 10) {
                             ship.go();
                             dock.assigned = false;
                         }
-                        if (ship.load_time >= mainInstance.boat_capacity * config.H_MAX_SHIP_LOAD_TIME) {
-                            if (config.N_FRAME - frameId < 3 * dock.transport_time) {
-                                continue;
-                            }
-                            // efficiency is too low, go to sell goods.
-                            ship.go();
-                            dock.assigned = false;
-                        } else if (
+                        if (
                                 dock.goods == 0 // dock is out of goods
                                         ||
                                         ship.num >= mainInstance.boat_capacity // Ship is full
                         ) {
-                            if (mainInstance.boat_capacity - ship.num > config.H_SHIP_CAPACITY_THRESHOLD
-                                    && ship.redirect <= config.H_SHIP_REDIRECT_THRESHOLD) {
-                                // Ship is far from full, redirect to another dock
-                                Dock bestDock = ship.chooseDock(frameId);
+                            if (ship.pos == 2 * ship.id) {
+                                if (frameId <
+                                        15000 - 5 * (
+                                                mainInstance.docks[2 * ship.id].transport_time
+                                                        + mainInstance.docks[2 * ship.id + 1].transport_time
+                                                        + 501
+                                        ) + mainInstance.docks[2 * ship.id].transport_time/2
+                                )
+                                    continue;
+                                if (frameId > 15000 - mainInstance.docks[2 * ship.id + 1].transport_time - 501) {
+                                    ship.go();
+                                    dock.assigned = false;
+                                }
+                                // Go to the second dock.
+                                Dock bestDock = mainInstance.docks[2 * ship.id + 1];
                                 bestDock.assigned = true;
                                 ship.ship(bestDock.id);
                                 ship.redirect += 1;
                             } else {
-                                // When ship is almost full, go to sell goods.
-                                if (config.N_FRAME - dock.transport_time - frameId < 2000) {
-                                    continue;
-                                }
                                 ship.go();
                             }
                             dock.assigned = false;

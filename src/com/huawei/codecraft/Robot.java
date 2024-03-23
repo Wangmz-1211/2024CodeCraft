@@ -29,6 +29,7 @@ public class Robot {
     public int status = 0;
     public int targetDock = -1;
     public int value = 0;
+    public int frameId = 0;
 
     /**
      * The goods history of the robot, for debugging the goods choosing strategy.
@@ -68,7 +69,10 @@ public class Robot {
 
 
     private int getDockCost(Dock dock) {
-        return - (dock.assigned ? 150 : 0) + 200 * Math.abs(id - dock.id) -  dock.score;
+
+        return frameId < 15000 - docks[id - id % 2].transport_time - 1500 ?
+                10 * Math.abs(id - dock.id) :
+                10 * Math.abs(id - id % 2 + 1 - dock.id);
     }
 
     private int getDockCost(int dockId) {
@@ -98,11 +102,13 @@ public class Robot {
      * @return
      */
     public Dock chooseDock() {
+        Logger.debug("[BOT" + id + "]", "chooseDock");
         PriorityQueue<Node<Dock>> rank = new PriorityQueue<>(Comparator.comparingInt(o -> o.cost));
         for (int dockId = 0; dockId < config.N_DOCK; dockId++) {
             int cost = getDockCost(dockId);
             rank.offer(new Node<>(docks[dockId], cost));
         }
+        Logger.debug("[BOT" + id + "]", "chose " + rank.peek().obj.id);
         return rank.isEmpty() ? null : rank.poll().obj;
     }
 
@@ -130,12 +136,12 @@ public class Robot {
         // check if the next position is occupied by other robots
         for (Robot robot : robots) {
             if (robot != this && (
-                        robot.getPos().equals(next) // go to a robot's position
-                        ||
-                        (robot.path != null && // go to a robot's first position in the path
-                                robot.path.path.peekFirst() != null &&
+                    robot.getPos().equals(next) // go to a robot's position
+                            ||
+                            (robot.path != null && // go to a robot's first position in the path
+                                    robot.path.path.peekFirst() != null &&
                                     robot.path.path.peekFirst().equals(next))
-                    )
+            )
             ) {
                 this.path = null;
                 this.targetDock = -1;
